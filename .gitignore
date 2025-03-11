@@ -1,0 +1,37 @@
+# Build directories
+build/
+bin/
+lib/
+out/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+*.cmake
+Makefile
+
+# Compiled files
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.dylib
+*.a
+*.lib
+
+# Generated documentation
+docs/generated/
+
+# Dependency directories
+thirdparty/build/
+
+# OS specific files
+.DS_Store
+Thumbs.db
