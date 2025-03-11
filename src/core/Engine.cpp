@@ -2,6 +2,7 @@
 #include "astral/core/Logger.h"
 #include "astral/core/Config.h"
 #include "astral/core/Timer.h"
+#include "astral/core/Profiler.h"
 #include <iostream>
 #include <thread>
 #include <chrono>
@@ -50,10 +51,15 @@ bool Engine::initialize(const std::string& configFile)
         config->set("vsync", true);
         config->set("fullscreen", false);
         config->set("target_fps", 60);
+        config->set("enable_profiling", true);
         
         // Save default config for next time
         config->saveToFile(configFile);
     }
+    
+    // Initialize profiler
+    bool enableProfiling = config->get<bool>("enable_profiling", true);
+    Profiler::getInstance().initialize(enableProfiling);
     
     // Initialize timer
     timer = std::make_unique<Timer>();
@@ -82,6 +88,13 @@ void Engine::shutdown()
     physics.reset();
     timer.reset();
     config.reset();
+    
+    // Save profiling data if enabled
+    if (Profiler::getInstance().isEnabled())
+    {
+        Profiler::getInstance().saveToFile("profiling_data.json");
+    }
+    
     logger.reset();
 }
 
@@ -103,6 +116,9 @@ void Engine::run()
     // Main loop
     while (running)
     {
+        // Begin frame profiling
+        Profiler::getInstance().beginFrame();
+        
         // Update time using the timer
         deltaTime = timer->update();
         time = timer->getTotalTime();
@@ -117,6 +133,20 @@ void Engine::run()
         {
             double sleepTime = (targetFrameTime - frameTime) * 1000.0;
             std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(sleepTime)));
+        }
+        
+        // End frame profiling
+        Profiler::getInstance().endFrame();
+        
+        // Record performance metrics
+        auto& profiler = Profiler::getInstance();
+        profiler.recordValue("FPS", 1.0 / frameTime);
+        
+        // Periodically save profiling data
+        static int frameCount = 0;
+        if (++frameCount % 300 == 0 && profiler.isEnabled())
+        {
+            profiler.saveToFile("profiling_data.json");
         }
     }
     
@@ -146,9 +176,13 @@ void Engine::update()
         return;
     }
     
+    // Profile the update
+    PROFILE_SCOPE("Update");
+    
     // Update physics system if available
     if (physics)
     {
+        PROFILE_SCOPE("Physics");
         // physics->update(deltaTime);
     }
 }
@@ -160,6 +194,9 @@ void Engine::render()
     {
         return;
     }
+    
+    // Profile the render
+    PROFILE_SCOPE("Render");
     
     // Render using the rendering system if available
     if (renderer)

@@ -13,17 +13,17 @@
 - [x] Creating basic application framework
 - [x] Setting up logging system
 - [x] Implementing configuration system
+- [x] Develop profiling system
+- [x] Set up testing framework
 
 ### Up Next
-- [ ] Develop profiling system
-- [ ] Set up testing framework
 - [ ] Create development tools
 
 ## Overall Progress
 
 | Phase | Description | Status | Completion |
 |-------|-------------|--------|------------|
-| 0 | Project Setup and Infrastructure | 🟡 In Progress | 50% |
+| 0 | Project Setup and Infrastructure | 🟡 In Progress | 80% |
 | 1 | Core Engine Architecture | ⚪ Not Started | 0% |
 | 2 | Physics System Implementation | ⚪ Not Started | 0% |
 | 3 | Rendering System Development | ⚪ Not Started | 0% |
@@ -43,8 +43,8 @@
 - [x] Create basic application framework
 - [x] Implement logging system
 - [x] Create configuration system
-- [ ] Set up profiling system
-- [ ] Implement basic testing framework
+- [x] Set up profiling system
+- [x] Implement basic testing framework
 - [ ] Set up documentation generation
 
 ### Phase 1: Core Engine Architecture
@@ -100,6 +100,14 @@
 - [ ] Prepare release package
 
 ## Recent Updates
+
+### 2025-03-11: Profiling and Testing Framework
+- Implemented Profiler class for performance monitoring
+- Added ScopedTimer for easy profiling of code sections
+- Created unit tests for all core components
+- Integrated profiling into Engine main loop
+- Added automatic performance metrics tracking
+- Set up basic physics tests
 
 ### 2025-03-11: Core Engine Components
 - Implemented Logger class using spdlog
