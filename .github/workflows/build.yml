@@ -42,18 +42,29 @@ jobs:
           doxygen \
           graphviz
 
-    - name: Setup vcpkg
-      uses: lukka/run-vcpkg@v11
-      with:
-        vcpkgGitCommitId: '64adda19c86e89526b5e27703a193c14477cec67'  # Use a specific commit to ensure stability
-    
-    - name: Configure vcpkg
+    - name: Setup vcpkg (Windows)
+      if: runner.os == 'Windows'
       run: |
-        vcpkg install glfw3:${{ matrix.vcpkg_triplet }} glm:${{ matrix.vcpkg_triplet }} spdlog:${{ matrix.vcpkg_triplet }} nlohmann-json:${{ matrix.vcpkg_triplet }} gtest:${{ matrix.vcpkg_triplet }} imgui:${{ matrix.vcpkg_triplet }}
+        git clone https://github.com/microsoft/vcpkg.git
+        cd vcpkg
+        ./bootstrap-vcpkg.bat
+        cd ..
+
+    - name: Setup vcpkg (Linux/macOS)
+      if: runner.os != 'Windows'
+      run: |
+        git clone https://github.com/microsoft/vcpkg.git
+        cd vcpkg
+        ./bootstrap-vcpkg.sh
+        cd ..
+    
+    - name: Install dependencies with vcpkg
+      run: |
+        ./vcpkg/vcpkg install --triplet=${{ matrix.vcpkg_triplet }} glfw3 glm spdlog nlohmann-json gtest imgui
 
     - name: Configure CMake
       run: |
-        cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_TOOLCHAIN_FILE=$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake
+        cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_TOOLCHAIN_FILE=./vcpkg/scripts/buildsystems/vcpkg.cmake
       
     - name: Build
       run: |
