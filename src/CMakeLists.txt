@@ -4,6 +4,7 @@ add_library(astral_core
     core/Timer.cpp
     core/Config.cpp
     core/Logger.cpp
+    core/Profiler.cpp
 )
 
 target_include_directories(astral_core PUBLIC
@@ -55,6 +56,33 @@ target_link_libraries(astral_rendering
     glm::glm
 )
 
+# Tools library
+add_library(astral_tools
+    tools/DebugUI.cpp
+)
+
+target_include_directories(astral_tools PUBLIC
+    ${CMAKE_SOURCE_DIR}/include
+)
+
+# Check if ImGui was found, otherwise provide a warning
+if (TARGET imgui::imgui)
+    target_link_libraries(astral_tools
+        PUBLIC
+        astral_core
+        imgui::imgui
+        glfw
+    )
+else()
+    message(WARNING "ImGui not found, debug UI will be disabled")
+    target_compile_definitions(astral_tools PRIVATE ASTRAL_NO_IMGUI)
+    target_link_libraries(astral_tools
+        PUBLIC
+        astral_core
+        glfw
+    )
+endif()
+
 # Main application
 add_executable(astral_app
     main.cpp
@@ -65,4 +93,22 @@ target_link_libraries(astral_app
     astral_core
     astral_physics
     astral_rendering
+    astral_tools
+)
+
+# Install targets
+install(TARGETS 
+    astral_core 
+    astral_physics 
+    astral_rendering 
+    astral_tools
+    EXPORT AstralTargets
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+    RUNTIME DESTINATION bin
+    INCLUDES DESTINATION include
+)
+
+install(TARGETS astral_app
+    RUNTIME DESTINATION bin
 )

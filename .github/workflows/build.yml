@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+
+jobs:
+  build:
+    name: ${{ matrix.os }}-${{ matrix.build_type }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        build_type: [Debug, Release]
+        include:
+          - os: ubuntu-latest
+            vcpkg_triplet: x64-linux
+          - os: windows-latest
+            vcpkg_triplet: x64-windows
+          - os: macos-latest
+            vcpkg_triplet: x64-osx
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install Linux Dependencies
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          cmake \
+          libxrandr-dev \
+          libxinerama-dev \
+          libxcursor-dev \
+          libxi-dev \
+          libgl1-mesa-dev \
+          libglu1-mesa-dev \
+          doxygen \
+          graphviz
+
+    - name: Setup vcpkg
+      uses: lukka/run-vcpkg@v11
+      with:
+        vcpkgGitCommitId: '64adda19c86e89526b5e27703a193c14477cec67'  # Use a specific commit to ensure stability
+    
+    - name: Configure vcpkg
+      run: |
+        vcpkg install glfw3:${{ matrix.vcpkg_triplet }} glm:${{ matrix.vcpkg_triplet }} spdlog:${{ matrix.vcpkg_triplet }} nlohmann-json:${{ matrix.vcpkg_triplet }} gtest:${{ matrix.vcpkg_triplet }} imgui:${{ matrix.vcpkg_triplet }}
+
+    - name: Configure CMake
+      run: |
+        cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_TOOLCHAIN_FILE=$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake
+      
+    - name: Build
+      run: |
+        cmake --build build --config ${{ matrix.build_type }}
+      
+    - name: Test
+      working-directory: build
+      run: |
+        ctest -C ${{ matrix.build_type }} --output-on-failure
+        
+    - name: Generate Documentation
+      if: runner.os == 'Linux' && matrix.build_type == 'Release'
+      run: |
+        cmake --build build --target docs
+        
+    - name: Package
+      if: matrix.build_type == 'Release'
+      run: |
+        cmake --build build --target package
+        
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v3
+      if: matrix.build_type == 'Release'
+      with:
+        name: astral-${{ matrix.os }}-${{ matrix.build_type }}
+        path: build/Astral-*.tar.gz
