@@ -11,8 +11,8 @@
 
 ### In Progress
 - [x] Creating basic application framework
-- [ ] Setting up logging system
-- [ ] Implementing configuration system
+- [x] Setting up logging system
+- [x] Implementing configuration system
 
 ### Up Next
 - [ ] Develop profiling system
@@ -23,7 +23,7 @@
 
 | Phase | Description | Status | Completion |
 |-------|-------------|--------|------------|
-| 0 | Project Setup and Infrastructure | 🟡 In Progress | 30% |
+| 0 | Project Setup and Infrastructure | 🟡 In Progress | 50% |
 | 1 | Core Engine Architecture | ⚪ Not Started | 0% |
 | 2 | Physics System Implementation | ⚪ Not Started | 0% |
 | 3 | Rendering System Development | ⚪ Not Started | 0% |
@@ -41,8 +41,8 @@
 - [ ] Configure CI pipeline with GitHub Actions
 - [ ] Set up package management (vcpkg)
 - [x] Create basic application framework
-- [ ] Implement logging system
-- [ ] Create configuration system
+- [x] Implement logging system
+- [x] Create configuration system
 - [ ] Set up profiling system
 - [ ] Implement basic testing framework
 - [ ] Set up documentation generation
@@ -100,6 +100,14 @@
 - [ ] Prepare release package
 
 ## Recent Updates
+
+### 2025-03-11: Core Engine Components
+- Implemented Logger class using spdlog
+- Created Config class for configuration management
+- Added Timer class for timing and framerate control
+- Implemented basic ChunkManager for world management
+- Added initial CellularPhysics implementation
+- Updated Engine class to use new components
 
 ### 2025-03-10: Project Structure Implementation
 - Set up basic directory structure

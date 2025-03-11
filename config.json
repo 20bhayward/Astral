@@ -1,0 +1,28 @@
+{
+    "window_width": 1280,
+    "window_height": 720,
+    "window_title": "Astral Engine",
+    "vsync": true,
+    "fullscreen": false,
+    "target_fps": 60,
+    "log_level": "info",
+    "physics": {
+        "update_rate": 60,
+        "chunk_size": 64,
+        "active_chunks_radius": 3,
+        "gravity": 9.8
+    },
+    "rendering": {
+        "cell_size": 4,
+        "enable_lighting": true,
+        "enable_post_processing": true,
+        "bloom_strength": 0.5,
+        "ambient_light": [0.2, 0.2, 0.2]
+    },
+    "debug": {
+        "show_fps": true,
+        "show_chunk_boundaries": false,
+        "show_active_chunks": false,
+        "show_physics_debug": false
+    }
+}
