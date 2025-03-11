@@ -24,7 +24,7 @@ jobs:
             vcpkg_triplet: x64-osx
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     
     - name: Install Linux Dependencies
       if: runner.os == 'Linux'
@@ -75,7 +75,7 @@ jobs:
         cmake --build build --target package
         
     - name: Upload Artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: matrix.build_type == 'Release'
       with:
         name: astral-${{ matrix.os }}-${{ matrix.build_type }}
