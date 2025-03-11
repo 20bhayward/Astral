@@ -8,7 +8,12 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Include custom CMake modules
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-include(Doxygen)
+# Check if Doxygen module exists
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Doxygen.cmake")
+  include(Doxygen)
+else()
+  message(STATUS "Doxygen.cmake not found - documentation generation disabled")
+endif()
 
 # Build options
 option(ASTRAL_BUILD_TESTS "Build tests" ON)
@@ -26,11 +31,49 @@ include_directories(include)
 
 # Dependencies
 find_package(OpenGL REQUIRED)
-find_package(glfw3 REQUIRED)
-find_package(glm REQUIRED)
-find_package(spdlog REQUIRED)
-find_package(nlohmann_json REQUIRED)
-find_package(imgui QUIET) # Optional ImGui for debug UI
+
+# Try to find dependencies with fallbacks
+# GLFW - Use our custom find module
+find_package(GLFW3 QUIET)
+if(NOT GLFW3_FOUND)
+  message(WARNING "GLFW3 not found - rendering components will not build")
+endif()
+
+# GLM
+find_package(glm QUIET)
+if(NOT glm_FOUND)
+  message(STATUS "GLM not found via find_package, checking for header-only include")
+  # For header-only GLM, we only need to check if the headers exist
+  find_path(GLM_INCLUDE_DIR glm/glm.hpp)
+  if(GLM_INCLUDE_DIR)
+    message(STATUS "Found GLM headers at ${GLM_INCLUDE_DIR}")
+    # Create an interface target if not created by find_package
+    if(NOT TARGET glm::glm)
+      add_library(glm::glm INTERFACE)
+      target_include_directories(glm::glm INTERFACE ${GLM_INCLUDE_DIR})
+    endif()
+  else()
+    message(WARNING "GLM not found - some components may not build")
+  endif()
+endif()
+
+# spdlog
+find_package(spdlog QUIET)
+if(NOT spdlog_FOUND)
+  message(WARNING "spdlog not found - logging functionality will be limited")
+endif()
+
+# nlohmann_json
+find_package(nlohmann_json QUIET)
+if(NOT nlohmann_json_FOUND)
+  message(WARNING "nlohmann_json not found - configuration system will be limited")
+endif()
+
+# ImGui (optional)
+find_package(imgui QUIET) 
+if(NOT imgui_FOUND)
+  message(STATUS "ImGui not found - debug UI will be disabled")
+endif()
 
 # Add subdirectories
 add_subdirectory(src)

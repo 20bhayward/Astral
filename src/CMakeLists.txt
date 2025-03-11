@@ -35,52 +35,76 @@ target_link_libraries(astral_physics
     glm::glm
 )
 
-# Rendering library
-add_library(astral_rendering
-    rendering/Renderer.cpp
-    rendering/ShaderProgram.cpp
-    rendering/Camera.cpp
-    rendering/GridRenderer.cpp
-)
+# Define rendering and tools libraries only if dependencies are available
+set(BUILD_RENDERING TRUE)
+set(BUILD_TOOLS TRUE)
 
-target_include_directories(astral_rendering PUBLIC
-    ${CMAKE_SOURCE_DIR}/include
-)
+if(NOT TARGET glfw OR NOT OPENGL_FOUND)
+    message(WARNING "GLFW or OpenGL not found - rendering library will not be built")
+    set(BUILD_RENDERING FALSE)
+endif()
 
-target_link_libraries(astral_rendering
-    PUBLIC
-    astral_core
-    astral_physics
-    ${OPENGL_LIBRARIES}
-    glfw
-    glm::glm
-)
+if(NOT TARGET glm::glm)
+    message(WARNING "GLM not found - rendering library will not be built")
+    set(BUILD_RENDERING FALSE)
+endif()
 
-# Tools library
-add_library(astral_tools
-    tools/DebugUI.cpp
-)
+if(BUILD_RENDERING)
+    # Rendering library
+    add_library(astral_rendering
+        rendering/Renderer.cpp
+        rendering/ShaderProgram.cpp
+        rendering/Camera.cpp
+        rendering/GridRenderer.cpp
+    )
 
-target_include_directories(astral_tools PUBLIC
-    ${CMAKE_SOURCE_DIR}/include
-)
+    target_include_directories(astral_rendering PUBLIC
+        ${CMAKE_SOURCE_DIR}/include
+    )
 
-# Check if ImGui was found, otherwise provide a warning
-if (TARGET imgui::imgui)
-    target_link_libraries(astral_tools
+    target_link_libraries(astral_rendering
         PUBLIC
         astral_core
-        imgui::imgui
+        astral_physics
+        ${OPENGL_LIBRARIES}
         glfw
+        glm::glm
     )
-else()
-    message(WARNING "ImGui not found, debug UI will be disabled")
-    target_compile_definitions(astral_tools PRIVATE ASTRAL_NO_IMGUI)
-    target_link_libraries(astral_tools
-        PUBLIC
-        astral_core
-        glfw
+endif()
+
+# Check if we can build the tools library
+if(NOT TARGET glfw)
+    message(WARNING "GLFW not found - tools library will not be built")
+    set(BUILD_TOOLS FALSE)
+endif()
+
+if(BUILD_TOOLS)
+    # Tools library
+    add_library(astral_tools
+        tools/DebugUI.cpp
     )
+
+    target_include_directories(astral_tools PUBLIC
+        ${CMAKE_SOURCE_DIR}/include
+    )
+
+    # Check if ImGui was found, otherwise provide a warning
+    if(TARGET imgui::imgui)
+        target_link_libraries(astral_tools
+            PUBLIC
+            astral_core
+            imgui::imgui
+            glfw
+        )
+    else()
+        message(WARNING "ImGui not found, debug UI will be disabled")
+        target_compile_definitions(astral_tools PRIVATE ASTRAL_NO_IMGUI)
+        target_link_libraries(astral_tools
+            PUBLIC
+            astral_core
+            glfw
+        )
+    endif()
 endif()
 
 # Main application
@@ -88,20 +112,45 @@ add_executable(astral_app
     main.cpp
 )
 
+# Link with core and physics (always available)
 target_link_libraries(astral_app
     PRIVATE
     astral_core
     astral_physics
-    astral_rendering
-    astral_tools
 )
 
-# Install targets
-install(TARGETS 
-    astral_core 
-    astral_physics 
-    astral_rendering 
-    astral_tools
+# Link with rendering if available
+if(BUILD_RENDERING)
+    target_link_libraries(astral_app
+        PRIVATE
+        astral_rendering
+    )
+    target_compile_definitions(astral_app PRIVATE ASTRAL_HAS_RENDERING)
+endif()
+
+# Link with tools if available
+if(BUILD_TOOLS)
+    target_link_libraries(astral_app
+        PRIVATE
+        astral_tools
+    )
+    target_compile_definitions(astral_app PRIVATE ASTRAL_HAS_TOOLS)
+endif()
+
+# Define the targets to install
+set(INSTALL_TARGETS astral_core astral_physics)
+
+# Add optional components if built
+if(BUILD_RENDERING)
+    list(APPEND INSTALL_TARGETS astral_rendering)
+endif()
+
+if(BUILD_TOOLS)
+    list(APPEND INSTALL_TARGETS astral_tools)
+endif()
+
+# Install the libraries
+install(TARGETS ${INSTALL_TARGETS}
     EXPORT AstralTargets
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
@@ -109,6 +158,6 @@ install(TARGETS
     INCLUDES DESTINATION include
 )
 
+# Install the main application
 install(TARGETS astral_app
-    RUNTIME DESTINATION bin
-)
+    RUNTIME DESTINATION bin)
