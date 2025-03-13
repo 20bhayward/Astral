@@ -120,7 +120,7 @@ void MaterialRegistry::registerBasicMaterials() {
     MaterialProperties sand(MaterialType::POWDER, "Sand", glm::vec4(0.76f, 0.7f, 0.5f, 1.0f));
     sand.density = 1600.0f;
     sand.movable = true;
-    sand.dispersion = 15.0f; // Much higher dispersion to force it to spread out horizontally
+    sand.dispersion = 10.0f; // Much higher dispersion to force it to spread out horizontally
     MATERIAL_ID_SAND = registerMaterial(sand);
     
     // Water - BLUE

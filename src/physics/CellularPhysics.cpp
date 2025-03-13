@@ -457,31 +457,11 @@ void CellularPhysics::updatePowder(int x, int y, float deltaTime)
     // Reset velocity to prevent random jittering
     cell.velocity = glm::vec2(0.0f, 0.0f);
     
-    // Step 4: Simple pile formation - check if there's stacked powder
-    // Try to slide horizontally if there's a lot of powder above
-    // but only with a small probability to avoid constant movement
-    if (cellProcessor->rollProbability(0.05f)) {
-        bool canMoveLeft = canMove(x, y, x - 1, y);
-        bool canMoveRight = canMove(x, y, x + 1, y);
-        
-        if (canMoveLeft && canMoveRight) {
-            // Can go either way, choose randomly
-            if (cellProcessor->rollProbability(0.5f)) {
-                moveCell(x, y, x - 1, y);
-            } else {
-                moveCell(x, y, x + 1, y);
-            }
-        } else if (canMoveLeft) {
-            moveCell(x, y, x - 1, y);
-        } else if (canMoveRight) {
-            moveCell(x, y, x + 1, y);
-        }
-    }
 }
 
 void CellularPhysics::updateLiquid(int x, int y, float deltaTime)
 {
-    // Skip if already updated
+    // Skip if already updated this tick
     if (updated[y][x]) {
         return;
     }
@@ -490,84 +470,24 @@ void CellularPhysics::updateLiquid(int x, int y, float deltaTime)
     cell.updated = true;
     updated[y][x] = true;
     
-    // Get material properties
+    // Only process if the cell is a liquid
     const MaterialProperties& props = materialRegistry->getMaterial(cell.material);
-    
-    // Check if the material is actually of liquid type
     if (props.type != MaterialType::LIQUID) {
         return;
     }
     
-    // Apply temperature effects
+    // Apply any temperature effects
     applyTemperature(x, y, deltaTime);
     
-    // Enhanced special behavior for lava - emit fire and smoke effects, and check surroundings
-    if (props.name == "Lava") {
-        // Check if there's air above this lava cell (up is negative y)
-        if (isValidPosition(x, y-1)) {
-            Cell& aboveCell = getCell(x, y-1);
-            if (aboveCell.material == materialRegistry->getDefaultMaterialID()) {
-                // Increased chance to emit fire (bubbling/spitting lava effect)
-                if (cellProcessor->rollProbability(0.015f)) {
-                    aboveCell.material = materialRegistry->getFireID();
-                    aboveCell.temperature = 650.0f; // Hotter fire
-                    aboveCell.setFlag(Cell::FLAG_BURNING);
-                    aboveCell.lifetime = static_cast<uint8_t>(20 + cellProcessor->getRandomInt(0, 15));
-                    aboveCell.velocity.y = -0.5f; // Initial upward velocity
-                }
-                // Also emit smoke (volcanic gas effect)
-                else if (cellProcessor->rollProbability(0.008f)) {
-                    aboveCell.material = materialRegistry->getSmokeID();
-                    aboveCell.temperature = 200.0f;
-                    aboveCell.lifetime = static_cast<uint8_t>(40 + cellProcessor->getRandomInt(0, 25));
-                }
-            }
-        }
-        
-        // Enhanced lava behaviors - check interactions in all 8 directions
-        for (int dy = -1; dy <= 1; dy++) {
-            for (int dx = -1; dx <= 1; dx++) {
-                if (dx == 0 && dy == 0) continue; // Skip center
-                
-                int nx = x + dx;
-                int ny = y + dy;
-                
-                if (!isValidPosition(nx, ny)) continue;
-                
-                Cell& neighborCell = getCell(nx, ny);
-                const MaterialProperties& neighborProps = materialRegistry->getMaterial(neighborCell.material);
-                
-                // Lava heats up surrounding materials
-                if (neighborCell.material != materialRegistry->getLavaID() && 
-                    neighborCell.material != materialRegistry->getDefaultMaterialID()) {
-                    // Heat transfer is part of processMaterialInteraction, but we'll boost it here
-                    neighborCell.temperature += 2.0f;
-                    
-                    // Ignite flammable materials with more consistency (in addition to reactions)
-                    if (neighborProps.flammable && neighborCell.temperature > 200.0f &&
-                        cellProcessor->rollProbability(0.07f)) {
-                        cellProcessor->igniteCell(neighborCell);
-                    }
-                }
-            }
-        }
-    }
-    
-    // Viscosity affects update frequency
-    if (props.viscosity > 0.0f && cellProcessor->rollProbability(props.viscosity)) {
-        return; // Skip movement based on viscosity
-    }
-    
-    // Basic liquid simulation: try to fall down
-    // FIXED: In screen coordinates or window coordinates, down is +y
+    // Step 1: Try to fall straight down
     if (canMove(x, y, x, y + 1)) {
         moveCell(x, y, x, y + 1);
         return;
     }
     
-    // Try diagonal falls with random direction preference
-    bool tryLeftFirst = cellProcessor->rollProbability(0.5f);
-    
+    // Step 2: If blocked below, try to slide diagonally (like powder)
+    // Use a deterministic choice for left/right to avoid bias
+    bool tryLeftFirst = (x % 2 == 0);
     if (tryLeftFirst) {
         if (canMove(x, y, x - 1, y + 1)) {
             moveCell(x, y, x - 1, y + 1);
@@ -588,95 +508,34 @@ void CellularPhysics::updateLiquid(int x, int y, float deltaTime)
         }
     }
     
-    // Horizontal flow based on dispersion
-    int dispersionDistance = static_cast<int>(props.dispersion * 3.0f) + 1;
-    
-    // Only bother with horizontal flow if we're blocked below
-    // This creates pooling behavior since cells only spread when they can't fall
-    bool blockedBelow = !canMove(x, y, x, y + 1);
-    
-    // Skip horizontal flow if not blocked below
-    if (!blockedBelow) {
+    // Step 3: If completely blocked below, try horizontal flow to flatten out
+    // This mimics spreading behavior with a forced downward check
+    if (canMove(x, y, x - 1, y)) {
+        moveCell(x, y, x - 1, y);
+        // Apply strong downward pressure after horizontal movement
+        if (canMove(x - 1, y, x - 1, y + 1)) {
+            moveCell(x - 1, y, x - 1, y + 1);
+        }
+        return;
+    }
+    if (canMove(x, y, x + 1, y)) {
+        moveCell(x, y, x + 1, y);
+        if (canMove(x + 1, y, x + 1, y + 1)) {
+            moveCell(x + 1, y, x + 1, y + 1);
+        }
         return;
     }
     
-    // Check for "surface" - liquids flow less at the top of a pool
-    bool isOnSurface = false;
-    if (isValidPosition(x, y-1)) {
-        const Cell& aboveCell = getCell(x, y-1);
-        // We're at the surface if there's air or gas above us
-        if (aboveCell.material == materialRegistry->getDefaultMaterialID() || 
-            materialRegistry->getMaterial(aboveCell.material).type == MaterialType::GAS) {
-            isOnSurface = true;
-        }
+    // Step 4: As a final measure, check again for downward movement to enforce pressure
+    if (canMove(x, y, x, y + 1)) {
+        moveCell(x, y, x, y + 1);
+        return;
     }
     
-    // Increase pressure based on how deep this liquid is
-    float depth = 0.0f;
-    for (int checkY = y + 1; checkY < y + 10 && isValidPosition(x, checkY); checkY++) {
-        const Cell& cellBelow = getCell(x, checkY);
-        const MaterialProperties& propsBelow = materialRegistry->getMaterial(cellBelow.material);
-        if (propsBelow.type == MaterialType::LIQUID && 
-            cellBelow.material == cell.material) {
-            depth += 1.0f;
-        } else {
-            break;
-        }
-    }
-    
-    // Add pressure based on depth - pushes liquid outward horizontally
-    cell.pressure = depth * 0.5f;
-    
-    // Surface tension effect - liquids on the surface tend to stick together
-    if (isOnSurface) {
-        dispersionDistance = std::max(1, dispersionDistance - 1); // Reduced horizontal flow on surface
-    }
-    
-    for (int dist = 1; dist <= dispersionDistance; dist++) {
-        // Flow probability decreases with distance and increases with pressure
-        float flowChance = 0.8f - (dist - 1) * 0.2f + cell.pressure * 0.1f;
-        
-        if (!cellProcessor->rollProbability(flowChance)) {
-            continue;
-        }
-        
-        // Try left or right with random preference
-        if (tryLeftFirst) {
-            if (canMove(x, y, x - dist, y)) {
-                moveCell(x, y, x - dist, y);
-                return;
-            }
-            if (canMove(x, y, x + dist, y)) {
-                moveCell(x, y, x + dist, y);
-                return;
-            }
-        } else {
-            if (canMove(x, y, x + dist, y)) {
-                moveCell(x, y, x + dist, y);
-                return;
-            }
-            if (canMove(x, y, x - dist, y)) {
-                moveCell(x, y, x - dist, y);
-                return;
-            }
-        }
-        
-        // Only check the immediate neighbors for performance
-        if (dist > 1) break;
-    }
-    
-    // Pressure effects: High pressure can force liquid upward
-    // Note: In our coordinate system, up is -y (negative y is upward)
-    if (cell.pressure > 2.0f) {
-        float upChance = (cell.pressure - 2.0f) * 0.1f;
-        if (cellProcessor->rollProbability(upChance)) {
-            if (canMove(x, y, x, y - 1)) {
-                moveCell(x, y, x, y - 1);
-                return;
-            }
-        }
-    }
+    // No movement possible; reset velocity to avoid jitter
+    cell.velocity = glm::vec2(0.0f, 0.0f);
 }
+
 
 void CellularPhysics::updateGas(int x, int y, float deltaTime)
 {
@@ -1428,55 +1287,55 @@ void CellularPhysics::update(float deltaTime)
         if (chunk) {
             // Set random velocities on some cells to kick-start activity
             // This ensures particles start moving even if initial conditions are static
-            for (int y = 0; y < CHUNK_SIZE; y++) {
-                for (int x = 0; x < CHUNK_SIZE; x++) {
-                    Cell& cell = chunk->getCell(x, y);
-                    // Materials should stay active
-                    if (cell.material != 0) {
-                        // Ensure all material cells are active for the simulation
-                        cell.updated = true;
+            // for (int y = 0; y < CHUNK_SIZE; y++) {
+            //     for (int x = 0; x < CHUNK_SIZE; x++) {
+            //         Cell& cell = chunk->getCell(x, y);
+            //         // Materials should stay active
+            //         if (cell.material != 0) {
+            //             // Ensure all material cells are active for the simulation
+            //             cell.updated = true;
                         
-                        // Only give random velocity to cells that are already moving or to gases/fire
-                        const MaterialProperties& props = materialRegistry->getMaterial(cell.material);
+            //             // Only give random velocity to cells that are already moving or to gases/fire
+            //             const MaterialProperties& props = materialRegistry->getMaterial(cell.material);
                         
-                        // Check if cell is already moving - don't disturb resting cells
-                        bool isMoving = (glm::length(cell.velocity) > 0.05f);
+            //             // Check if cell is already moving - don't disturb resting cells
+            //             bool isMoving = (glm::length(cell.velocity) > 0.05f);
                         
-                        // Only apply to gases and fire which should always be moving
-                        // Don't disturb liquids and powders that have settled
-                        if ((props.type == MaterialType::GAS || props.type == MaterialType::FIRE) ||
-                            // Only add small velocity to moving liquids/powders (avoid creating perpetual motion)
-                            (isMoving && (props.type == MaterialType::LIQUID || props.type == MaterialType::POWDER))) {
+            //             // Only apply to gases and fire which should always be moving
+            //             // Don't disturb liquids and powders that have settled
+            //             if ((props.type == MaterialType::GAS || props.type == MaterialType::FIRE) ||
+            //                 // Only add small velocity to moving liquids/powders (avoid creating perpetual motion)
+            //                 (isMoving && (props.type == MaterialType::LIQUID || props.type == MaterialType::POWDER))) {
                             
-                            // Reduce velocity magnitude significantly for stability
-                            float velMagnitude = 0.05f;
-                            if (props.type == MaterialType::GAS || props.type == MaterialType::FIRE) {
-                                // Gases and fire should move more actively
-                                velMagnitude = 0.1f;
-                            }
+            //                 // Reduce velocity magnitude significantly for stability
+            //                 float velMagnitude = 0.05f;
+            //                 if (props.type == MaterialType::GAS || props.type == MaterialType::FIRE) {
+            //                     // Gases and fire should move more actively
+            //                     velMagnitude = 0.1f;
+            //                 }
                             
-                            cell.velocity.x += (rand() % 100 - 50) / 1000.0f * velMagnitude;
-                            cell.velocity.y += (rand() % 100 - 50) / 1000.0f * velMagnitude;
+            //                 cell.velocity.x += (rand() % 100 - 50) / 1000.0f * velMagnitude;
+            //                 cell.velocity.y += (rand() % 100 - 50) / 1000.0f * velMagnitude;
                             
-                            // Cap maximum velocity to avoid erratic behavior
-                            float maxVel = 2.0f;
-                            if (glm::length(cell.velocity) > maxVel) {
-                                cell.velocity = glm::normalize(cell.velocity) * maxVel;
-                            }
-                        } 
-                        // Apply damping to settled materials over time
-                        else if (props.type == MaterialType::LIQUID || props.type == MaterialType::POWDER) {
-                            // Gradually stop movement of settled materials
-                            cell.velocity *= 0.8f;
+            //                 // Cap maximum velocity to avoid erratic behavior
+            //                 float maxVel = 2.0f;
+            //                 if (glm::length(cell.velocity) > maxVel) {
+            //                     cell.velocity = glm::normalize(cell.velocity) * maxVel;
+            //                 }
+            //             } 
+            //             // Apply damping to settled materials over time
+            //             else if (props.type == MaterialType::LIQUID || props.type == MaterialType::POWDER) {
+            //                 // Gradually stop movement of settled materials
+            //                 cell.velocity *= 0.8f;
                             
-                            // If velocity is very small, just stop completely
-                            if (glm::length(cell.velocity) < 0.05f) {
-                                cell.velocity = glm::vec2(0.0f, 0.0f);
-                            }
-                        }
-                    }
-                }
-            }
+            //                 // If velocity is very small, just stop completely
+            //                 if (glm::length(cell.velocity) < 0.05f) {
+            //                     cell.velocity = glm::vec2(0.0f, 0.0f);
+            //                 }
+            //             }
+            //         }
+            //     }
+            // }
             chunk->setActive(true);
         }
     }
