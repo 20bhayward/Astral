@@ -98,8 +98,15 @@ MaterialProperties CellularPhysics::getMaterialProperties(int x, int y) const
 
 bool CellularPhysics::canMove(int x, int y, int newX, int newY)
 {
+    static int canMoveCount = 0;
+    canMoveCount++;
+    
     // Boundary check
     if (!isValidPosition(x, y) || !isValidPosition(newX, newY)) {
+        if (canMoveCount % 1000 == 0) {
+            std::cout << "CAN_MOVE CALL #" << canMoveCount << ": FAILED due to out of bounds - (" 
+                     << x << "," << y << ") to (" << newX << "," << newY << ")" << std::endl;
+        }
         return false;
     }
     
@@ -107,8 +114,21 @@ bool CellularPhysics::canMove(int x, int y, int newX, int newY)
     Cell& sourceCell = getCell(x, y);
     Cell& targetCell = getCell(newX, newY);
     
-    // Use CellProcessor to determine if movement is possible
-    return cellProcessor->canCellMove(sourceCell, targetCell);
+    // Get result early for logging
+    bool canMoveResult = cellProcessor->canCellMove(sourceCell, targetCell);
+    
+    // Print status every 1000 calls
+    if (canMoveCount % 1000 == 0) {
+        const MaterialProperties& sourceProp = materialRegistry->getMaterial(sourceCell.material);
+        const MaterialProperties& targetProp = materialRegistry->getMaterial(targetCell.material);
+        
+        std::cout << "CAN_MOVE CALL #" << canMoveCount << ": " 
+                 << (canMoveResult ? "ALLOWED" : "BLOCKED") 
+                 << " - Source: " << sourceProp.name << "(" << x << "," << y << ")"
+                 << ", Target: " << targetProp.name << "(" << newX << "," << newY << ")" << std::endl;
+    }
+    
+    return canMoveResult;
 }
 
 void CellularPhysics::swapCells(int x, int y, int newX, int newY)
@@ -143,10 +163,34 @@ void CellularPhysics::swapCells(int x, int y, int newX, int newY)
     if (isValidPosition(newX, newY)) updated[newY][newX] = true;
 }
 
+// Track ANY cell movements
+void CellularPhysics::trackLavaMovement(int x, int y, int newX, int newY) {
+    static int moveCount = 0;
+    
+    // Only print if there's actual movement (different coordinates)
+    if (x != newX || y != newY) {
+        moveCount++;
+        std::cout << "MOVEMENT #" << moveCount << ": Cell moved from (" 
+                  << x << "," << y << ") to (" << newX << "," << newY << ")" << std::endl;
+    }
+}
+
 void CellularPhysics::moveCell(int x, int y, int newX, int newY)
 {
+    static int callCount = 0;
+    callCount++;
+    
+    // Just print every 100th call to avoid spamming
+    if (callCount % 100 == 0) {
+        std::cout << "MOVE CALL #" << callCount << ": Attempt to move from (" 
+                  << x << "," << y << ") to (" << newX << "," << newY << ")" << std::endl;
+    }
+    
     // Boundary check
     if (!isValidPosition(x, y) || !isValidPosition(newX, newY)) {
+        if (callCount % 100 == 0) {
+            std::cout << "  -> FAILED: Out of bounds" << std::endl;
+        }
         return;
     }
     
@@ -395,8 +439,21 @@ void CellularPhysics::updateSolid(int x, int y, float deltaTime)
 
 void CellularPhysics::updatePowder(int x, int y, float deltaTime)
 {
+    static int powderUpdateCount = 0;
+    powderUpdateCount++;
+    
+    // Print every 1000 calls
+    if (powderUpdateCount % 1000 == 0) {
+        std::cout << "UPDATE POWDER #" << powderUpdateCount << ": Position (" << x << "," << y << ")" << std::endl;
+    }
+    
     // Skip if already updated
-    if (updated[y][x]) return;
+    if (updated[y][x]) {
+        if (powderUpdateCount % 1000 == 0) {
+            std::cout << "  -> SKIPPED: Already updated" << std::endl;
+        }
+        return;
+    }
     
     Cell& cell = getCell(x, y);
     cell.updated = true;
@@ -407,6 +464,9 @@ void CellularPhysics::updatePowder(int x, int y, float deltaTime)
     
     // Check if the material is actually of powder type
     if (props.type != MaterialType::POWDER) {
+        if (powderUpdateCount % 1000 == 0) {
+            std::cout << "  -> SKIPPED: Not powder type" << std::endl;
+        }
         return;
     }
     
@@ -414,9 +474,9 @@ void CellularPhysics::updatePowder(int x, int y, float deltaTime)
     applyTemperature(x, y, deltaTime);
     
     // Basic powder simulation: try to fall down
-    // Note: In our world, down is -y (OpenGL standard coordinates)
-    if (canMove(x, y, x, y - 1)) {
-        moveCell(x, y, x, y - 1);
+    // FIXED: In screen coordinates, down is +y
+    if (canMove(x, y, x, y + 1)) {
+        moveCell(x, y, x, y + 1);
         return;
     }
     
@@ -424,21 +484,21 @@ void CellularPhysics::updatePowder(int x, int y, float deltaTime)
     bool tryLeftFirst = cellProcessor->rollProbability(0.5f);
     
     if (tryLeftFirst) {
-        if (canMove(x, y, x - 1, y - 1)) {
-            moveCell(x, y, x - 1, y - 1);
+        if (canMove(x, y, x - 1, y + 1)) {
+            moveCell(x, y, x - 1, y + 1);
             return;
         }
-        if (canMove(x, y, x + 1, y - 1)) {
-            moveCell(x, y, x + 1, y - 1);
+        if (canMove(x, y, x + 1, y + 1)) {
+            moveCell(x, y, x + 1, y + 1);
             return;
         }
     } else {
-        if (canMove(x, y, x + 1, y - 1)) {
-            moveCell(x, y, x + 1, y - 1);
+        if (canMove(x, y, x + 1, y + 1)) {
+            moveCell(x, y, x + 1, y + 1);
             return;
         }
-        if (canMove(x, y, x - 1, y - 1)) {
-            moveCell(x, y, x - 1, y - 1);
+        if (canMove(x, y, x - 1, y + 1)) {
+            moveCell(x, y, x - 1, y + 1);
             return;
         }
     }
@@ -493,8 +553,21 @@ void CellularPhysics::updatePowder(int x, int y, float deltaTime)
 
 void CellularPhysics::updateLiquid(int x, int y, float deltaTime)
 {
+    static int liquidUpdateCount = 0;
+    liquidUpdateCount++;
+    
+    // Print every 1000 calls
+    if (liquidUpdateCount % 1000 == 0) {
+        std::cout << "UPDATE LIQUID #" << liquidUpdateCount << ": Position (" << x << "," << y << ")" << std::endl;
+    }
+    
     // Skip if already updated
-    if (updated[y][x]) return;
+    if (updated[y][x]) {
+        if (liquidUpdateCount % 1000 == 0) {
+            std::cout << "  -> SKIPPED: Already updated" << std::endl;
+        }
+        return;
+    }
     
     Cell& cell = getCell(x, y);
     cell.updated = true;
@@ -505,6 +578,9 @@ void CellularPhysics::updateLiquid(int x, int y, float deltaTime)
     
     // Check if the material is actually of liquid type
     if (props.type != MaterialType::LIQUID) {
+        if (liquidUpdateCount % 1000 == 0) {
+            std::cout << "  -> SKIPPED: Not liquid type (material=" << props.name << ")" << std::endl;
+        }
         return;
     }
     
@@ -517,9 +593,9 @@ void CellularPhysics::updateLiquid(int x, int y, float deltaTime)
     }
     
     // Basic liquid simulation: try to fall down
-    // Note: In our world, down is -y (OpenGL standard coordinates)
-    if (canMove(x, y, x, y - 1)) {
-        moveCell(x, y, x, y - 1);
+    // FIXED: In screen coordinates or window coordinates, down is +y
+    if (canMove(x, y, x, y + 1)) {
+        moveCell(x, y, x, y + 1);
         return;
     }
     
@@ -527,21 +603,21 @@ void CellularPhysics::updateLiquid(int x, int y, float deltaTime)
     bool tryLeftFirst = cellProcessor->rollProbability(0.5f);
     
     if (tryLeftFirst) {
-        if (canMove(x, y, x - 1, y - 1)) {
-            moveCell(x, y, x - 1, y - 1);
+        if (canMove(x, y, x - 1, y + 1)) {
+            moveCell(x, y, x - 1, y + 1);
             return;
         }
-        if (canMove(x, y, x + 1, y - 1)) {
-            moveCell(x, y, x + 1, y - 1);
+        if (canMove(x, y, x + 1, y + 1)) {
+            moveCell(x, y, x + 1, y + 1);
             return;
         }
     } else {
-        if (canMove(x, y, x + 1, y - 1)) {
-            moveCell(x, y, x + 1, y - 1);
+        if (canMove(x, y, x + 1, y + 1)) {
+            moveCell(x, y, x + 1, y + 1);
             return;
         }
-        if (canMove(x, y, x - 1, y - 1)) {
-            moveCell(x, y, x - 1, y - 1);
+        if (canMove(x, y, x - 1, y + 1)) {
+            moveCell(x, y, x - 1, y + 1);
             return;
         }
     }
@@ -980,18 +1056,114 @@ void CellularPhysics::updateChunk(Chunk* chunk, float deltaTime)
 
 void CellularPhysics::update(float deltaTime)
 {
+    static int updateCallCount = 0;
+    updateCallCount++;
+    std::cout << "PHYSICS UPDATE #" << updateCallCount << " called with deltaTime=" << deltaTime << std::endl;
+    
     // Reset update tracking for new frame
     resetUpdateTracker();
     
     // Use optimized parallel chunk processing for better performance
+    std::cout << " -> Calling chunkManager->updateChunksParallel()" << std::endl;
     chunkManager->updateChunksParallel(deltaTime);
     
-    // IMPORTANT: Key bug fix - NEVER reset the updated flag on cells
-    // In the original code, this was resetting all cell.updated flags to false
-    // which was preventing physics simulation from happening
-    
-    // Force all materials to be active
+    // CRITICAL FIX: Directly update all cells in active chunks since Chunk::update doesn't call physics
+    std::cout << " -> CRITICAL FIX: Manually processing all cells in active chunks" << std::endl;
     const auto& activeChunks = chunkManager->getActiveChunks();
+    
+    // FIRST PHASE: Process all cell movements based on their type
+    for (const auto& chunkCoord : activeChunks) {
+        Chunk* chunk = chunkManager->getChunk(chunkCoord);
+        if (chunk) {
+            // Process cells in the chunk using our update methods
+            for (int localY = 0; localY < CHUNK_SIZE; localY++) {
+                for (int localX = 0; localX < CHUNK_SIZE; localX++) {
+                    // Convert to world coordinates
+                    int worldX = chunkCoord.x * CHUNK_SIZE + localX;
+                    int worldY = chunkCoord.y * CHUNK_SIZE + localY;
+                    
+                    // Get cell and material 
+                    Cell& cell = chunkManager->getCell(worldX, worldY);
+                    
+                    // Skip empty cells
+                    if (cell.material == 0) continue;
+                    
+                    // Get material properties
+                    MaterialProperties props = materialRegistry->getMaterial(cell.material);
+                    
+                    // Call the appropriate update function based on material type
+                    switch (props.type) {
+                        case MaterialType::EMPTY:
+                            updateEmpty(worldX, worldY, deltaTime);
+                            break;
+                        case MaterialType::SOLID:
+                            updateSolid(worldX, worldY, deltaTime);
+                            break;
+                        case MaterialType::POWDER:
+                            updatePowder(worldX, worldY, deltaTime);
+                            break;
+                        case MaterialType::LIQUID:
+                            updateLiquid(worldX, worldY, deltaTime);
+                            break;
+                        case MaterialType::GAS:
+                            updateGas(worldX, worldY, deltaTime);
+                            break;
+                        case MaterialType::FIRE:
+                            updateFire(worldX, worldY, deltaTime);
+                            break;
+                        case MaterialType::SPECIAL:
+                            updateSpecial(worldX, worldY, deltaTime);
+                            break;
+                    }
+                }
+            }
+        }
+    }
+    
+    // SECOND PHASE: Process all material interactions between cells
+    // This is the critical step that was being skipped/overlooked!
+    std::cout << " -> PROCESSING ALL MATERIAL INTERACTIONS" << std::endl;
+    for (const auto& chunkCoord : activeChunks) {
+        Chunk* chunk = chunkManager->getChunk(chunkCoord);
+        if (chunk) {
+            for (int localY = 0; localY < CHUNK_SIZE; localY++) {
+                for (int localX = 0; localX < CHUNK_SIZE; localX++) {
+                    // Convert to world coordinates
+                    int worldX = chunkCoord.x * CHUNK_SIZE + localX;
+                    int worldY = chunkCoord.y * CHUNK_SIZE + localY;
+                    
+                    // Skip empty cells or out of bounds
+                    if (!isValidPosition(worldX, worldY)) continue;
+                    Cell& cell = chunkManager->getCell(worldX, worldY);
+                    if (cell.material == 0) continue;
+                    
+                    // Apply temperature effects to all cells
+                    applyTemperature(worldX, worldY, deltaTime);
+                    
+                    // Process interactions with ALL neighboring cells
+                    for (int dy = -1; dy <= 1; dy++) {
+                        for (int dx = -1; dx <= 1; dx++) {
+                            if (dx == 0 && dy == 0) continue;
+                            
+                            int nx = worldX + dx;
+                            int ny = worldY + dy;
+                            
+                            if (isValidPosition(nx, ny)) {
+                                // Process material interaction and heat transfer between cells
+                                processMaterialInteraction(worldX, worldY, nx, ny, deltaTime);
+                            }
+                        }
+                    }
+                    
+                    // Check for state changes by temperature for this cell
+                    // This handles phase transitions like water->steam, etc.
+                    cellProcessor->checkStateChangeByTemperature(cell);
+                }
+            }
+        }
+    }
+    
+    // THIRD PHASE: Ensure all cells are active for the next frame
     for (const auto& chunkCoord : activeChunks) {
         Chunk* chunk = chunkManager->getChunk(chunkCoord);
         if (chunk) {
@@ -1007,12 +1179,12 @@ void CellularPhysics::update(float deltaTime)
                         
                         // Give fluid cells a small random velocity to kickstart movement
                         const MaterialProperties& props = materialRegistry->getMaterial(cell.material);
-                        if (props.type == MaterialType::LIQUID || props.type == MaterialType::POWDER) {
-                            // Add a tiny bit of velocity if none exists
-                            if (glm::length(cell.velocity) < 0.01f) {
-                                cell.velocity.x = (rand() % 100 - 50) / 500.0f;
-                                cell.velocity.y = (rand() % 100) / 500.0f;
-                            }
+                        if (props.type == MaterialType::LIQUID || props.type == MaterialType::POWDER || 
+                            props.type == MaterialType::GAS || props.type == MaterialType::FIRE) {
+                            // Add a larger velocity to all cells to ensure they exceed movement threshold
+                            // The velocity threshold for movement is 0.1f, so we need to exceed that
+                            cell.velocity.x = (rand() % 100 - 50) / 250.0f; // Doubled magnitude
+                            cell.velocity.y = (rand() % 100 - 50) / 250.0f; // Added negative values too
                         }
                     }
                 }

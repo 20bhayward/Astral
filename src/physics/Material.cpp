@@ -83,6 +83,19 @@ void MaterialRegistry::registerBasicMaterials() {
     water.viscosity = 0.0f;   // Zero viscosity 
     water.dispersion = 10.0f; // Very high dispersion to force horizontal spread
     water.movable = true;
+    
+    // Add thermal properties
+    water.boilingPoint = 100.0f;  // Water boils at 100C
+    water.freezingPoint = 0.0f;   // Water freezes at 0C
+    water.thermalConductivity = 0.6f;  // Moderate thermal conductivity
+    water.specificHeat = 4.18f;  // High specific heat
+    
+    // CRITICAL: Add state changes for boiling!
+    MaterialStateChange steamChange;
+    steamChange.targetMaterial = 7;  // Steam ID
+    steamChange.temperatureThreshold = 100.0f;  // Boiling point
+    steamChange.probability = 0.5f;  // Moderate probability
+    water.stateChanges.push_back(steamChange);
     registerMaterial(water);
     
     // Oil - DARK BROWN/BLACK
@@ -92,11 +105,20 @@ void MaterialRegistry::registerBasicMaterials() {
     oil.dispersion = 2.0f; // Flows less easily than water
     oil.flammable = true;
     oil.flammability = 0.8f;
+    oil.ignitionPoint = 250.0f;  // Ignites easily
+    oil.burnRate = 1.2f;        // Burns quickly
     oil.movable = true;
+    oil.thermalConductivity = 0.2f;
+    
+    // Oil can turn to fire when hot enough
+    MaterialStateChange fireChange;
+    fireChange.targetMaterial = 6;  // Fire ID
+    fireChange.temperatureThreshold = 250.0f;  // Ignition point
+    fireChange.probability = 0.5f;
+    oil.stateChanges.push_back(fireChange);
     registerMaterial(oil);
     
     // Lava - BRIGHT RED/ORANGE 
-    // THIS IS THE CRITICAL BUG: Lava was set as a LIQUID but has other issues
     MaterialProperties lava(MaterialType::LIQUID, "Lava", glm::vec4(1.0f, 0.3f, 0.0f, 1.0f));
     // Fix critical properties
     lava.density = 2000.0f;  
@@ -104,8 +126,21 @@ void MaterialRegistry::registerBasicMaterials() {
     lava.viscosity = 0.2f;   
     lava.emissive = true;
     lava.emissiveStrength = 0.7f;
-    // CRITICAL FIX: Ensure this is movable
     lava.movable = true;
+    
+    // Add thermal properties
+    lava.meltingPoint = 800.0f;  // Melting point of rock
+    lava.thermalConductivity = 0.5f;
+    
+    // Add state change for cooling to stone
+    MaterialStateChange stoneChange;
+    stoneChange.targetMaterial = 1;  // Stone ID
+    stoneChange.temperatureThreshold = -800.0f;  // Negative for cooling threshold
+    stoneChange.probability = 0.2f;  // Low probability so it cools slowly
+    lava.stateChanges.push_back(stoneChange);
+    
+    // Lava ignites things nearby
+    lava.ignitionPoint = 0.0f;  // Always hot enough to ignite things
     registerMaterial(lava);
     
     // Fire - ORANGE/YELLOW
@@ -113,6 +148,18 @@ void MaterialRegistry::registerBasicMaterials() {
     fire.density = 0.3f;
     fire.emissive = true;
     fire.emissiveStrength = 0.8f;
+    fire.movable = true;  // Fire can move upward
+    fire.thermalConductivity = 0.8f;  // High thermal conductivity
+    
+    // Set lifetime for fire
+    fire.lifetime = 20;  // Fire burns out after some time
+    
+    // Add state change from fire to smoke
+    MaterialStateChange smokeChange;
+    smokeChange.targetMaterial = 8;  // Smoke ID
+    smokeChange.temperatureThreshold = -100.0f;  // When fire cools below 100
+    smokeChange.probability = 0.8f;  // High probability
+    fire.stateChanges.push_back(smokeChange);
     registerMaterial(fire);
     
     // Steam - WHITE/LIGHT BLUE
@@ -121,6 +168,15 @@ void MaterialRegistry::registerBasicMaterials() {
     steam.viscosity = 0.1f;     // Low viscosity for fluid movement
     steam.dispersion = 8.0f;    // High dispersion for wide spreading
     steam.movable = true;
+    steam.thermalConductivity = 0.4f;
+    steam.lifetime = 30;  // Steam lasts a while before dissipating
+    
+    // Steam condenses back to water when it cools
+    MaterialStateChange waterChange;
+    waterChange.targetMaterial = 3;  // Water ID
+    waterChange.temperatureThreshold = -90.0f;  // When steam cools below 90
+    waterChange.probability = 0.2f;  // Low probability so it doesn't condense too fast
+    steam.stateChanges.push_back(waterChange);
     registerMaterial(steam);
     
     // Smoke - DARK GRAY
@@ -129,6 +185,8 @@ void MaterialRegistry::registerBasicMaterials() {
     smoke.viscosity = 0.2f;     // Slightly more viscous than steam
     smoke.dispersion = 6.0f;    // Still high dispersion but less than steam
     smoke.movable = true;
+    smoke.lifetime = 40;        // Smoke lasts longer than steam before dissipating
+    smoke.thermalConductivity = 0.2f;
     registerMaterial(smoke);
     
     // Wood - BROWN
@@ -136,6 +194,9 @@ void MaterialRegistry::registerBasicMaterials() {
     wood.density = 700.0f;
     wood.flammable = true;
     wood.flammability = 0.4f;
+    wood.ignitionPoint = 300.0f;  // Wood ignites at 300 degrees
+    wood.burnRate = 0.8f;         // Burns relatively quickly
+    wood.thermalConductivity = 0.2f;  // Low thermal conductivity
     registerMaterial(wood);
 }
 

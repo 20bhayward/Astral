@@ -67,9 +67,11 @@ bool Engine::initialize(const std::string& configFile)
     timer = std::make_unique<Timer>();
     timer->reset();
     
-    // TODO: Initialize physics system
+    // Initialize physics system
+    // The PhysicsSystem is currently an empty interface - we'll use whatever physics
+    // system is passed to us by the application layer, typically CellularPhysics
     
-    // TODO: Initialize rendering system
+    // Initialize rendering system - similarly application will need to set this
     
     logger->info("Engine initialized successfully");
     return true;
@@ -185,7 +187,7 @@ void Engine::update()
     if (physics)
     {
         PROFILE_SCOPE("Physics");
-        // physics->update(deltaTime);
+        physics->update(deltaTime);
     }
 }
 

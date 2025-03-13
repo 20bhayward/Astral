@@ -89,7 +89,13 @@ void CellProcessor::applyMaterialProperties(Cell& cell, const MaterialProperties
     
     // Apply thermal properties - set initial temperature based on material
     if (props.type == MaterialType::FIRE) {
-        cell.temperature = std::max(cell.temperature, 500.0f);
+        cell.temperature = 600.0f;  // Fire is hot!
+    } else if (props.type == MaterialType::GAS && props.name.find("Steam") != std::string::npos) {
+        cell.temperature = 120.0f;  // Steam is hot
+    } else if (props.type == MaterialType::GAS && props.name.find("Smoke") != std::string::npos) {
+        cell.temperature = 150.0f;  // Smoke is hot
+    } else if (props.type == MaterialType::LIQUID && props.name.find("Lava") != std::string::npos) {
+        cell.temperature = 1000.0f; // Lava is very hot!
     } else if (props.meltingPoint > 0 && props.meltingPoint < 100) {
         // Cold materials (like ice)
         cell.temperature = 0.0f;
@@ -104,32 +110,64 @@ void CellProcessor::applyMaterialProperties(Cell& cell, const MaterialProperties
 
 bool CellProcessor::canCellMove(const Cell& cell, const Cell& target) const
 {
+    static int processorCallCount = 0;
+    processorCallCount++;
+    bool shouldLog = (processorCallCount % 10000 == 0);
+    
     // Cannot move if the cell is not movable
     const MaterialProperties& cellProps = materialRegistry->getMaterial(cell.material);
     if (!cellProps.movable) {
+        if (shouldLog) {
+            std::cout << "PROCESSOR #" << processorCallCount << ": Movement blocked - " 
+                      << cellProps.name << " is not movable!" << std::endl;
+        }
         return false;
     }
     
     // Can always move into empty space
     if (target.material == materialRegistry->getDefaultMaterialID()) {
+        if (shouldLog) {
+            std::cout << "PROCESSOR #" << processorCallCount << ": APPROVED - Moving into empty space" << std::endl;
+        }
         return true;
     }
     
     // Check if densities allow displacement
     const MaterialProperties& targetProps = materialRegistry->getMaterial(target.material);
     
+    // CRITICAL FIX: Allow any cell to move into air spaces
+    if (targetProps.type == MaterialType::EMPTY) {
+        if (shouldLog) {
+            std::cout << "PROCESSOR #" << processorCallCount << ": APPROVED - Moving into empty type" << std::endl;
+        }
+        return true; 
+    }
+    
     // Liquids and powders can displace less dense materials
     if ((cellProps.type == MaterialType::LIQUID || cellProps.type == MaterialType::POWDER) &&
         cellProps.density > targetProps.density) {
+        if (shouldLog) {
+            std::cout << "PROCESSOR #" << processorCallCount << ": APPROVED - Denser " 
+                      << cellProps.name << " displacing less dense " << targetProps.name << std::endl;
+        }
         return true;
     }
     
     // Gases can displace other gases if they're denser
     if (cellProps.type == MaterialType::GAS && targetProps.type == MaterialType::GAS &&
         cellProps.density > targetProps.density) {
+        if (shouldLog) {
+            std::cout << "PROCESSOR #" << processorCallCount << ": APPROVED - Denser gas displacement" << std::endl;
+        }
         return true;
     }
     
+    if (shouldLog) {
+        std::cout << "PROCESSOR #" << processorCallCount << ": BLOCKED - No displacement rule matched: " 
+                  << cellProps.name << " (type=" << (int)cellProps.type << ", density=" << cellProps.density 
+                  << ") vs " << targetProps.name << " (type=" << (int)targetProps.type 
+                  << ", density=" << targetProps.density << ")" << std::endl;
+    }
     return false;
 }
 

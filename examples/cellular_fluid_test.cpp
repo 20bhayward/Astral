@@ -792,6 +792,13 @@ void drawWorld(const astral::CellularAutomaton& automaton) {
             
             // Draw a simple quad without any overlap tricks
             float size = 1.0f; // Size of each cell
+            
+            // Debug position - print a few coordinates occasionally
+            if (rand() % 10000 == 0) {
+                std::cout << "DEBUG - Drawing cell at (" << x << "," << y << ") with material " 
+                          << cell.material << ", velocity: " << cell.velocity.x << "," << cell.velocity.y << std::endl;
+            }
+            
             glVertex2f(x, y);
             glVertex2f(x + size, y);
             glVertex2f(x + size, y + size);

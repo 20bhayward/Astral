@@ -43,6 +43,7 @@ private:
     void swapCells(int x, int y, int newX, int newY);
     void moveCell(int x, int y, int newX, int newY);
     void applyForce(int x, int y, const glm::vec2& force);
+    void trackLavaMovement(int x, int y, int newX, int newY); // Debug helper
     void processMaterialInteraction(int x1, int y1, int x2, int y2, float deltaTime);
     void applyTemperature(int x, int y, float deltaTime);
     
