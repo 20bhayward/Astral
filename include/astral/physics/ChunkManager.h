@@ -15,6 +15,11 @@ struct ChunkCoord {
     bool operator==(const ChunkCoord& other) const {
         return x == other.x && y == other.y;
     }
+    
+    // Add less-than operator for std::set
+    bool operator<(const ChunkCoord& other) const {
+        return (x < other.x) || (x == other.x && y < other.y);
+    }
 };
 
 struct WorldCoord {
@@ -52,7 +57,7 @@ struct ChunkCoordHash {
 // Forward declarations
 class MaterialRegistry;
 
-constexpr int CHUNK_SIZE = 64; // 64x64 cells per chunk
+constexpr int CHUNK_SIZE = 32; // Reduced from 64 to 32 for better performance and fewer chunk boundary issues
 
 /**
  * A chunk contains a grid of cells that make up a portion of the world.
@@ -130,11 +135,38 @@ public:
     const std::set<ChunkCoord>& getActiveChunks() const { return activeChunks; }
     void updateActiveChunks(const WorldRect& activeArea);
     void updateChunks(float deltaTime);
+    void updateChunksParallel(float deltaTime) {
+        // Currently just delegates to the serial version
+        updateChunks(deltaTime);
+    }
+    void forceActivateChunk(ChunkCoord coord) { activeChunks.insert(coord); }
     
     // Utility
     bool isValidCoord(WorldCoord coord) const;
     int getChunkCount() const { return chunks.size(); }
     int getActiveChunkCount() const { return activeChunks.size(); }
+    
+    // Performance statistics structure
+    struct PerformanceStats {
+        int totalChunks = 0;
+        int activeChunks = 0;
+        int totalCells = 0;
+        int activeCells = 0;
+        float activePercentage = 0.0f;
+        float updateTime = 0.0f;
+    };
+    
+    // Get performance statistics
+    PerformanceStats getPerformanceStats() const {
+        PerformanceStats stats;
+        stats.totalChunks = chunks.size();
+        stats.activeChunks = activeChunks.size();
+        stats.totalCells = chunks.size() * CHUNK_SIZE * CHUNK_SIZE;
+        // Estimating active cells as we don't track individual cells
+        stats.activeCells = activeChunks.size() * CHUNK_SIZE * CHUNK_SIZE / 4; // Assuming ~25% of cells in active chunks are active
+        stats.activePercentage = stats.totalCells > 0 ? (stats.activeCells * 100.0f / stats.totalCells) : 0.0f;
+        return stats;
+    }
 };
 
 } // namespace astral

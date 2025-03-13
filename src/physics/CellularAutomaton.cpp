@@ -56,12 +56,23 @@ void CellularAutomaton::reset(WorldTemplate tmpl)
     // Reset timer
     updateTimer.reset();
     
-    // Initialize the world with the selected template
+    // Clear existing world first
+    clearWorld();
+    
+    // Initialize with the selected template
     initializeWorldFromTemplate(tmpl);
+    
+    // Set active area to the full world to ensure all cells can be active
+    WorldRect initialActiveArea = {0, 0, worldWidth, worldHeight};
+    chunkManager->updateActiveChunks(initialActiveArea);
+    
+    // Also set the active area for later updates
+    activeArea = initialActiveArea;
     
     // Reset stats
     stats = SimulationStats();
     stats.activeChunks = chunkManager->getActiveChunkCount();
+    stats.totalCells = worldWidth * worldHeight;
     
     // Resume simulation
     isPaused = false;
@@ -123,8 +134,15 @@ void CellularAutomaton::setCell(int x, int y, MaterialID material)
     CellProcessor processor(&materialRegistry);
     processor.initializeCellFromMaterial(cell, material);
     
+    // Mark the cell as updated to ensure it's active for at least one frame
+    cell.updated = true;
+    
     // Set the cell in the world
     chunkManager->setCell(x, y, cell);
+    
+    // Make sure the active area includes this cell
+    WorldRect cellRect = {x, y, 1, 1};
+    chunkManager->updateActiveChunks(cellRect);
 }
 
 void CellularAutomaton::updateSimulationStats()

@@ -1,10 +1,15 @@
 cmake_minimum_required(VERSION 3.15)
-project(Astral VERSION 0.1.0 LANGUAGES CXX)
+project(Astral VERSION 0.1.0 LANGUAGES C CXX)
 
 # C++17 standard
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+
+# C11 standard
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_C_EXTENSIONS OFF)
 
 # Include custom CMake modules
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
@@ -30,50 +35,22 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 include_directories(include)
 
 # Dependencies
-find_package(OpenGL REQUIRED)
+find_package(OpenGL)
+find_package(glfw3)
+find_package(glm REQUIRED)
+find_package(spdlog REQUIRED)
+find_package(nlohmann_json REQUIRED)
 
-# Try to find dependencies with fallbacks
-# GLFW - Use our custom find module
-find_package(GLFW3 QUIET)
-if(NOT GLFW3_FOUND)
-  message(WARNING "GLFW3 not found - rendering components will not build")
+# Optional graphics functionality
+if(OpenGL_FOUND AND glfw3_FOUND)
+    message(STATUS "OpenGL and GLFW found - graphics functionality will be enabled")
+    add_compile_definitions(USE_OPENGL)
+else()
+    message(STATUS "OpenGL or GLFW not found - graphics functionality will be disabled")
 endif()
 
-# GLM
-find_package(glm QUIET)
-if(NOT glm_FOUND)
-  message(STATUS "GLM not found via find_package, checking for header-only include")
-  # For header-only GLM, we only need to check if the headers exist
-  find_path(GLM_INCLUDE_DIR glm/glm.hpp)
-  if(GLM_INCLUDE_DIR)
-    message(STATUS "Found GLM headers at ${GLM_INCLUDE_DIR}")
-    # Create an interface target if not created by find_package
-    if(NOT TARGET glm::glm)
-      add_library(glm::glm INTERFACE)
-      target_include_directories(glm::glm INTERFACE ${GLM_INCLUDE_DIR})
-    endif()
-  else()
-    message(WARNING "GLM not found - some components may not build")
-  endif()
-endif()
-
-# spdlog
-find_package(spdlog QUIET)
-if(NOT spdlog_FOUND)
-  message(WARNING "spdlog not found - logging functionality will be limited")
-endif()
-
-# nlohmann_json
-find_package(nlohmann_json QUIET)
-if(NOT nlohmann_json_FOUND)
-  message(WARNING "nlohmann_json not found - configuration system will be limited")
-endif()
-
-# ImGui (optional)
-find_package(imgui QUIET) 
-if(NOT imgui_FOUND)
-  message(STATUS "ImGui not found - debug UI will be disabled")
-endif()
+# GLAD - just include it directly
+include_directories(${CMAKE_SOURCE_DIR}/include)
 
 # Add subdirectories
 add_subdirectory(src)

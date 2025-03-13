@@ -8,7 +8,8 @@ add_library(astral_core
 )
 
 target_include_directories(astral_core PUBLIC
-    ${CMAKE_SOURCE_DIR}/include
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
 )
 
 target_link_libraries(astral_core
@@ -23,10 +24,12 @@ add_library(astral_physics
     physics/Cell.cpp
     physics/ChunkManager.cpp
     physics/CellularPhysics.cpp
+    physics/CellularAutomaton.cpp
 )
 
 target_include_directories(astral_physics PUBLIC
-    ${CMAKE_SOURCE_DIR}/include
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
 )
 
 target_link_libraries(astral_physics
@@ -35,42 +38,9 @@ target_link_libraries(astral_physics
     glm::glm
 )
 
-# Define rendering and tools libraries only if dependencies are available
-set(BUILD_RENDERING TRUE)
-set(BUILD_TOOLS TRUE)
-
-if(NOT TARGET glfw OR NOT OPENGL_FOUND)
-    message(WARNING "GLFW or OpenGL not found - rendering library will not be built")
-    set(BUILD_RENDERING FALSE)
-endif()
-
-if(NOT TARGET glm::glm)
-    message(WARNING "GLM not found - rendering library will not be built")
-    set(BUILD_RENDERING FALSE)
-endif()
-
-if(BUILD_RENDERING)
-    # Rendering library
-    add_library(astral_rendering
-        rendering/Renderer.cpp
-        rendering/ShaderProgram.cpp
-        rendering/Camera.cpp
-        rendering/GridRenderer.cpp
-    )
-
-    target_include_directories(astral_rendering PUBLIC
-        ${CMAKE_SOURCE_DIR}/include
-    )
-
-    target_link_libraries(astral_rendering
-        PUBLIC
-        astral_core
-        astral_physics
-        ${OPENGL_LIBRARIES}
-        glfw
-        glm::glm
-    )
-endif()
+# Disable rendering and tools for now to simplify build
+set(BUILD_RENDERING FALSE)
+set(BUILD_TOOLS FALSE)
 
 # Check if we can build the tools library
 if(NOT TARGET glfw)
@@ -85,7 +55,8 @@ if(BUILD_TOOLS)
     )
 
     target_include_directories(astral_tools PUBLIC
-        ${CMAKE_SOURCE_DIR}/include
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>
     )
 
     # Check if ImGui was found, otherwise provide a warning

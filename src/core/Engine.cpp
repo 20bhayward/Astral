@@ -3,6 +3,8 @@
 #include "astral/core/Config.h"
 #include "astral/core/Timer.h"
 #include "astral/core/Profiler.h"
+#include "astral/physics/PhysicsSystem.h"
+#include "astral/rendering/RenderingSystem.h"
 #include <iostream>
 #include <thread>
 #include <chrono>

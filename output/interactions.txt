@@ -1,0 +1,689 @@
+Material Interactions Test
+Registered material: Stone with ID 1
+Registered material: Sand with ID 2
+Registered material: Water with ID 3
+Registered material: Oil with ID 4
+Registered material: Lava with ID 5
+Registered material: Fire with ID 6
+Registered material: Steam with ID 7
+Registered material: Smoke with ID 8
+Registered material: Wood with ID 9
+
+=== Test Scenario 1: Cascade ===
+
+Initial state:
++--------------------------------------------------------------------------------+
+|#                                                                              #|
+|#                                                                              #|
+|#         ssssssssssssssssssss                                                 #|
+|#         ssssssssssssssssssss                                                 #|
+|#         ssssssssssssssssssss                                                 #|
+|#         ssssssssssssssssssss                                                 #|
+|#         ssssssssssssssssssss                                                 #|
+|#         ssssssssssssssssssss                                                 #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                 ##########                   #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                       ##########                             #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                             ##########                                       #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                   ##########                                                 #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#         ##########                                                           #|
+|#              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~          ooooooooooooooo         #|
+|#              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~          ooooooooooooooo         #|
+|#              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~          ooooooooooooooo         #|
+|################################################################################|
++--------------------------------------------------------------------------------+
+
+Step 1:
++--------------------------------------------------------------------------------+
+|                                                                                |
+|#         ssssssssssssssssssss                                                 #|
+|#        s                    s                                                #|
+|#        ssssssssssssssssss   ss                                               #|
+|#        ssssssssssssssssss   ss                                               #|
+|#        ssssssssssssssssss   ss                                               #|
+|#        sssssssssssssssss s  ss                                               #|
+|#         ssssssssssssssss    ss                                               #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                 ##########                   #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                       ##########                             #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                             ##########                                       #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                   ##########                                                 #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#              ## # #                                                          #|
+|#         ######~~~~~~~~~~~~~~~~~~~~~~~~~~~           ooooo o oooo  o          #|
+|#              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~        ooooooooooooooooo        #|
+|##            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~        ooooooooooooooooo       ##|
+|################################################################################|
++--------------------------------------------------------------------------------+
+Active chunks: 2 | Active cells: 7637 | Update time: 2.92083ms
+
+Step 5:
++--------------------------------------------------------------------------------+
+|      ssssssssssssss ssssssssssssss                                             |
+|       ssssssssssssss s sssss  s s                                              |
+|       sssssssssssssss   ss ss  ss                                              |
+|        sssssssssssssss s   s ss                                                |
+|       s               s s s  s                                                 |
+|#     s sssssssssss s s  s                                                     #|
+|#                  s                                                           #|
+|#      s ssssss    ss                                                          #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                 ##########                   #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                       ##########                             #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                             ##########                                       #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#               # # ##########                                                 #|
+|#               ~~~~~~~~~~~~~~~~~~~~~~~~~~~       oo o oo                      #|
+|###          ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~     oooooooooo  oooooo           #|
+|####    ######~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~   oooooooooooooooooooooooo######|
+|################################################################################|
++--------------------------------------------------------------------------------+
+Active chunks: 2 | Active cells: 7382 | Update time: 0.888152ms
+
+Step 10:
++--------------------------------------------------------------------------------+
+|sssssssssssssssssssssssssssss s ss ss s                                         |
+| sssssssssssssssssssss s sss s s                                                |
+| sssssssssssssssssss sss ss   s                                                 |
+|   sssssss sssssssss    ss s                                                    |
+|    sssss s s s s s   s                                                         |
+|        s ss                                                                    |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                 ##########                   #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                       ##########                             #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#               ##### # # # # ##########                                       #|
+|##             #~~~~~~~~~~~~~~~~~~~~~~~~~~~       o                            #|
+|## ##  #     ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ooooooo oooo  o  ooooo        #####|
+|##############~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ooooooooooooooooooooooooooo#######|
+|################################################################################|
++--------------------------------------------------------------------------------+
+Active chunks: 2 | Active cells: 7182 | Update time: 3.19822ms
+
+Step 15:
++--------------------------------------------------------------------------------+
+|sssssssssssssssssssssssssssssssss ss ss  ss                                     |
+|sssssssssssssssssssssssssssssss s                                               |
+|ssssssssssssssss ssssss s   s                                                   |
+|ssssssssssss s ss  ss                                                           |
+| ss s ssss s                                                                    |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                 ##########                   #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                  # #########  ###  #  ##########                             #|
+|## ##          #~~~~~~~~~~~~~~~~~~~~~~~~                                       #|
+|############## ~~~~~~~~~~~~~~~~~~~~~~~~~~~ #oo   oooo oo  o      o    ##########|
+|##############~~~~~~~~~~~~~~~~~~~~~~~~~~~~~oooooooooooooooooooooooooooooo#######|
+|################################################################################|
++--------------------------------------------------------------------------------+
+Active chunks: 2 | Active cells: 7065 | Update time: 5.52638ms
+
+Step 20:
++--------------------------------------------------------------------------------+
+|ssssssssssssssssssssssssssssssssss ssssssss s                                   |
+|ssssssssssssssssssssssssss  sss s                                               |
+|ssssssssssssssssssssss  s sss                                                   |
+|ssssssssss sss ss  s s                                                          |
+|s s  s  s                                                                       |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|###             #####      ## ####  #             ##########                   #|
+|######   #     #~~~~~~~~~~~~~~~~~~~~~~~~## #   #                               #|
+|###############~~~~~~~~~~~~~~~~~~~~~~~~~~######ooo#ooo#    o    o###############|
+|##############~~~~~~~~~~~~~~~~~~~~~~~~~~~~ooooooooooooooooooooooooooooooo#######|
+|################################################################################|
++--------------------------------------------------------------------------------+
+Active chunks: 2 | Active cells: 7001 | Update time: 3.85758ms
+
+Step 25:
++--------------------------------------------------------------------------------+
+|ssssssssssssssssssssssssssssssssssssssss sss s s                                |
+|ssssssssssssssssssssssssssss sss s s                                            |
+|ssssssssssssssssssss  ss s ss                                                   |
+|ssssssssssss  s s                                                               |
+|  ss s                                                                          |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|## ##  #           #  #   #### #  #  #                                         #|
+|#############  #~~~~~~~~~~~~~~~~~~~~~~~~  ##  # ##   #    ##                   #|
+|###############~~~~~~~~~~~~~~~~~~~~~~~~~######ooo#o#o###o###oo##################|
+|##############~~~~~~~~~~~~~~~~~~~~~~~~~~~oooooooooooooooooooooo#oooooooo########|
+|################################################################################|
++--------------------------------------------------------------------------------+
+Active chunks: 2 | Active cells: 6992 | Update time: 1.40055ms
+
+=== Test Scenario 2: Funnel ===
+
+Initial state:
++--------------------------------------------------------------------------------+
+|#                                                                              #|
+|#                                                                              #|
+|#                   sssssssssssssssssssssssssssssssssssssssss                  #|
+|#                   sssssssssssssssssssssssssssssssssssssssss                  #|
+|#                   sssssssssssssssssssssssssssssssssssssssss                  #|
+|#                   sssssssssssssssssssssssssssssssssssssssss                  #|
+|#                   sssssssssssssssssssssssssssssssssssssssss                  #|
+|#                   sssssssssssssssssssssssssssssssssssssssss                  #|
+|#                        ~~                           oo                       #|
+|#                        ~~                           oo                       #|
+|#                        ~~                           oo                       #|
+|#                        ~~                           oo                       #|
+|#                        ~~                           oo                       #|
+|#                        ~~                           oo                       #|
+|#                        ~~                           oo                       #|
+|#                            ##                   ##                           #|
+|#                          ##                       ##                         #|
+|#                        ##                           ##                       #|
+|#                      ##                               ##                     #|
+|#                    ##                                   ##                   #|
+|#                  ##                                       ##                 #|
+|#                ##                                           ##               #|
+|#              ##                                               ##             #|
+|#            ##                                                   ##           #|
+|#          ##                                                       ##         #|
+|#        ##                                                           ##       #|
+|#      ##                                                               ##     #|
+|#     #                                                                   #    #|
+|#                                                                              #|
+|#                                                                              #|
+|#                   ###############           ###############                  #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~          oooooooooooooooooooooooooooooo    #|
+|#    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~          oooooooooooooooooooooooooooooo    #|
+|#    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~          oooooooooooooooooooooooooooooo    #|
+|#    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~          oooooooooooooooooooooooooooooo    #|
+|################################################################################|
++--------------------------------------------------------------------------------+
+
+Step 1:
++--------------------------------------------------------------------------------+
+|                                                                                |
+|#                   sssssssssssssssssssssssssssssssssssssssss                  #|
+|#                  s                                         s                 #|
+|#                  ssssssssssssssssssssssssssssssssssssssss  s                 #|
+|#                  sssssssssssssssssssssssssssssssssssssss   ss                #|
+|#                  ssssssssssssssssssssssssssssssssssssssss  s                 #|
+|#                  ssssssssssssssssssssssssssssssssssssss    sss               #|
+|#                   sssssssssssssssssssssssssssssssssssss    ss                #|
+|#                                                                              #|
+|#                        ~~                           oo                       #|
+|#                        ~~                           oo                       #|
+|#                        ~~                           oo                       #|
+|#                        ~~                           oo                       #|
+|#                        ~~                           oo                       #|
+|#                        ~~                           oo                       #|
+|#                        ~~                           oo                       #|
+|#                            ##                   ##                           #|
+|#                          ##                       ##                         #|
+|#                        ##                           ##                       #|
+|#                      ##                               ##                     #|
+|#                    ##                                   ##                   #|
+|#                  ##                                       ##                 #|
+|#                ##                                           ##               #|
+|#              ##                                               ##             #|
+|#            ##                                                   ##           #|
+|#          ##                                                       ##         #|
+|#        ##                                                           ##       #|
+|#      ##                                                               ##     #|
+|#     #                                                                   #    #|
+|#                                                                              #|
+|#                                                                              #|
+|#                   ###############           ###############                  #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#     ~~~~~~~~~~~~~~~~~~~~~~~~~~            ooooooooooooo o o ooooooooo        #|
+|#    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~        oooooooooooooooooooooooooooooooo   #|
+|#    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~        oooooooooooooooooooooooooooooooo   #|
+|##  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~        oooooooooooooooooooooooooooooooo  ##|
+|################################################################################|
++--------------------------------------------------------------------------------+
+Active chunks: 2 | Active cells: 7287 | Update time: 2.45205ms
+
+Step 5:
++--------------------------------------------------------------------------------+
+|               ssssssssssssssssssssssssssssssssssssss ssssss   s sss            |
+|               ssssssssssssssssssssssssssssssssssssssssssssss                   |
+|                  ssssssssssssssssssssssssssssssssss     s s sss                |
+|                   sssssssssssssssssssssssssssssssssss sssss s                  |
+|                 s                                 s  s        s                |
+|#                 sssssssssssssssssssssssssssssssss  s s s                     #|
+|#                                                ss s   s                      #|
+|#                sssssssssssssssssssssssss    sss                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                        ~~                           oo                       #|
+|#                        ~~                           oo                       #|
+|#                        ~~                           oo                       #|
+|#                        ~~                           oo                       #|
+|#                        ~~                           oo                       #|
+|#                        ~~                           oo                       #|
+|#                        ~~                           oo                       #|
+|#                            ##                   ##                           #|
+|#                          ##                       ##                         #|
+|#                        ##                           ##                       #|
+|#                      ##                               ##                     #|
+|#                    ##                                   ##                   #|
+|#                  ##                                       ##                 #|
+|#                ##                                           ##               #|
+|#              ##                                               ##             #|
+|#            ##                                                   ##           #|
+|#          ##                                                       ##         #|
+|#        ##                                                           ##       #|
+|#      ##                                                               ##     #|
+|#     #                                                                   #    #|
+|#                                                                              #|
+|#                  ###########               ###   ##                          #|
+|#      ~~~~~~~~~~~~~~~~~~~~~~~~~####    oooooooooo###oo#######  oo  o          #|
+|##    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~      ooooooooooooooooo   o oooooooooo  o ####|
+|## #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~    ooooooooooooooooooooooooooooooooooooooo#|
+|###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  ooooooooooooooooooooooooooooooooooooo###|
+|################################################################################|
++--------------------------------------------------------------------------------+
+Active chunks: 2 | Active cells: 6874 | Update time: 6.11058ms
+
+Step 10:
++--------------------------------------------------------------------------------+
+|         ssssssssssssssssssssssssssssssssssssssssssssssssssssssss    ssss       |
+|           sssssssssssssssssssssssssssssssssssssssssssss   sss s  s             |
+|            ssssssssssssssssssssssssssssssssssssssssss  sss                     |
+|             sssssssssssssssssssssssssssssssssss    s s                         |
+|              sssssssssssssssssssssssss ss ss sss                               |
+|               ssssssssssssss  ss ss s s s s                                    |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                        ~~                           oo                       #|
+|#                        ~~                           oo                       #|
+|#                        ~~                           oo                       #|
+|#                        ~~                           oo                       #|
+|#                        ~~                           oo                       #|
+|#                        ~~                           oo                       #|
+|#                        ~~                           oo                       #|
+|#                            ##                   ##                           #|
+|#                          ##                       ##                         #|
+|#                        ##                           ##                       #|
+|#                      ##                               ##                     #|
+|#                    ##                                   ##                   #|
+|#                  ##                                       ##                 #|
+|#                ##                                           ##               #|
+|#              ##                                               ##             #|
+|#            ##                                                   ##           #|
+|##       # ##### # #  ### #  ##                                     ##         #|
+|##    #~~~~~~~~~~~~~~~~~~~~~~~~~#  oooooooooo#########                ### # #  #|
+|######~~~~~~~~~~~~~~~~~~~~~~~~~~~~#o#oooooooooooooooo#o## o   ooooooo#oo########|
+|####~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##ooooooooooooooooooooooo###ooooooooooooooooo#|
+|###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~oooooooooooooooooooooooooooooooooooooooo###|
+|################################################################################|
++--------------------------------------------------------------------------------+
+Active chunks: 2 | Active cells: 6583 | Update time: 1.87205ms
+
+Step 15:
++--------------------------------------------------------------------------------+
+|    sssssssssssssssssssssssssssssssssssssssssssssssssssssssssss  s ss   sssss   |
+|      sssssssssssssssssssssssssssssssssssssss sssss s ssss ss                   |
+|       sssssssssssssssssssssssssssssssssssssssss ss                             |
+|        ssssssssssssssssssssssssssssss sss ssss                                 |
+|         ssssssssssssssssssssssssssss s  ss                                     |
+|           sss s s sssssss  ss  s   ss                                          |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                        ~~                           oo                       #|
+|#                        ~~                           oo                       #|
+|#                        ~~                           oo                       #|
+|#                        ~~                           oo                       #|
+|#                        ~~                           oo                       #|
+|#                        ~~                           oo                       #|
+|#                        ~~                           oo                       #|
+|#                            ##                   ##                           #|
+|#                          ##                       ##                         #|
+|#                        ##                           ##                       #|
+|#                   ## ##                               ##                     #|
+|# ## ###################   #  #                           ##     #             #|
+|#######~~~~~~~~~~~~~~~~~~~~~~~~##ooooooooo######    #       ## #######   ##  ###|
+|######~~~~~~~~~~~~~~~~~~~~~~~~~~o##oooooooooooooooo#o### #    ##o#oo############|
+|####~~~~~~~~~~~~~~~~~~~~~~~~~~~#~#oooooooooooooooooooooo##oo#oooooooooooooooooo#|
+|###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ooooooooooooooooooooooooooooooooooooooooooo###|
+|################################################################################|
++--------------------------------------------------------------------------------+
+Active chunks: 2 | Active cells: 6476 | Update time: 3.72964ms
+
+Step 20:
++--------------------------------------------------------------------------------+
+|ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss ss  ss    ss ss s|
+| ssssssssssssssssssssssssssssssssssssssssssssssssss  s  s  s                    |
+|  ssssssssssssssssssssssssssssssssssssss sssss  ss                              |
+|   ssssssssssssssssssssssssssssssssssss                                         |
+|    sssssssssssssssssssssss  sss sss                                            |
+|           sssss s sss    sss                                                   |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                        ~~                           oo                       #|
+|#                        ~~                           oo                       #|
+|#                        ~~                           oo                       #|
+|#                        ~~                           oo                       #|
+|#                        ~~~                          oo                       #|
+|#### #              #   #~~~                          oo                       #|
+|###############################  ##               #   oo                       #|
+|#######~~~~~~~~~~~~~~~~~~~~~~#~#ooooooooo   ### ######    #     #####  #####  ##|
+|######~~~~~~~~~~~~~~~~~~~~~~~~~#ooooooooooooooo#o###########   oo###############|
+|####~~~~~~~~~~~~~~~~~~~~~~~~~###oooooooooooooooooooo##oo#o##o###ooooooooooooooo#|
+|###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~oooooooooooooooooooooooooooooo##ooooooooooooo###|
+|################################################################################|
++--------------------------------------------------------------------------------+
+Active chunks: 2 | Active cells: 6447 | Update time: 3.54626ms
+
+Step 25:
++--------------------------------------------------------------------------------+
+|ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss sss sssss  sss sss |
+|ssssssssssssssssssssssssssssssssssssssssssssssssss s   s ss                     |
+|sssssssssssssssssssssssssssssssssssss s  ss s s  sss                            |
+|ssssssssssssssssssssssssssssssssss s ss                                         |
+|ssssssssssssssssssssssss s ssss s                                               |
+|       s  s s   sss                                                             |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|#                                                                              #|
+|##                       ~                                                     #|
+|###                     ~~~                                                    #|
+|#####  ##      #     # ~~~~~~~                        oo                       #|
+|#############################~~#                      oo                       #|
+|#######~~~~~~~~~~~~~~~~~~~~~~#~oo## ooooo########oo#oooooo       # # ######## ##|
+|######~~~~~~~~~~~~~~~~~~~~~~~o##ooooooooooooo#o#########o##o  ##################|
+|####~~~~~~~~~~~~~~~~~~~~~~~~####oooooooooooooooooo##oo#o##o#####ooooooooooooooo#|
+|###~~~~~~~~~~~~~~~~~~~~~~~~~~ooooooooooooooooooooooooooooo####ooooooooooooooo###|
+|################################################################################|
++--------------------------------------------------------------------------------+
+Active chunks: 2 | Active cells: 6431 | Update time: 6.08187ms
+
+Step 30:
++--------------------------------------------------------------------------------+
+|ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss s ss  sss sss s|
+|ssssssssssssssssssssssssssssssssssssssssssssssssssss ss sss s                   |
+|ssssssssssssssssssssssssssssssssssssssssss   s sss                              |
+|sssssssssssssssssssssssssssssss sss s  s                                        |
+|ssssssssssssssssss  ssssss s   ss                                               |
+|        s   s ss    s                                                           |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|#                                                                              #|
+|#                                                                              #|
+|####  #                 ~~~                                                    #|
+|######### # #   #   #  ~~~~~                                                   #|
+|############################~~ ##                                              #|
+|#######~~~~~~~~~~~~~~~~~~~~~#~~##oooo########oo#oooooo oo      # #####   #######|
+|######~~~~~~~~~~~~~~~~~~~~~~~~##ooooooooooo#o#########oo#o# # ##################|
+|####~~~~~~~~~~~~~~~~~~~~~~~####o~ooooooooooooooo##oo#o##o###o###ooooooooooooooo#|
+|###~~~~~~~~~~~~~~~~~~~~~~~~~oooooooooooooooooooooooooooo####oo##ooooooooooooo###|
+|################################################################################|
++--------------------------------------------------------------------------------+
+Active chunks: 2 | Active cells: 6426 | Update time: 4.73195ms
+
+Material interactions test complete!

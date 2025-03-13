@@ -58,40 +58,50 @@ bool Chunk::hasActiveCells() const {
 }
 
 void Chunk::updateActiveState() {
-    isActiveFlag = false;
+    // Always consider the chunk active for Lava Lake simulation
+    isActiveFlag = true;
     
-    // For now, just a simple placeholder implementation
-    // In a real implementation, we would check all cells based on material properties
+    // Mark all non-empty cells as active
     for (int y = 0; y < CHUNK_SIZE; y++) {
         for (int x = 0; x < CHUNK_SIZE; x++) {
-            const Cell& cell = cells[y][x];
-            
-            // A cell is active if it has velocity or is not empty
-            // This would be refined based on MaterialRegistry in a full implementation
-            bool isActive = (cell.material != 0) && (cell.velocity.x != 0.0f || cell.velocity.y != 0.0f);
-            
-            activeCells[y][x] = isActive;
-            if (isActive) {
-                isActiveFlag = true;
+            if (cells[y][x].material != 0) {
+                activeCells[y][x] = true;
+            } else {
+                activeCells[y][x] = false;
             }
         }
     }
 }
 
 void Chunk::update(float deltaTime) {
-    // Placeholder for physics update
-    // In a real implementation, this would update all cells based on physics rules
+    // Always set active if on chunk boundaries - to help with particles moving across chunks
+    bool hasBoundaryCells = false;
     
-    // For now, just update velocity on all cells to simulate some movement
+    // Check cells at edges of chunk to see if they contain particles 
+    // that might need to cross boundaries
     for (int y = 0; y < CHUNK_SIZE; y++) {
         for (int x = 0; x < CHUNK_SIZE; x++) {
-            Cell& cell = cells[y][x];
-            
-            // Apply gravity to cells with non-zero material (not air)
-            if (cell.material != 0) {
-                cell.velocity.y += 9.8f * deltaTime; // Simple gravity
+            // Check only boundary cells (edges of the chunk)
+            if (x == 0 || x == CHUNK_SIZE-1 || y == 0 || y == CHUNK_SIZE-1) {
+                if (cells[y][x].material != 0) {
+                    // Boundary has material - mark chunk as active
+                    hasBoundaryCells = true;
+                    
+                    // For powder materials, explicitly force active
+                    const MaterialProperties& props = materialRegistry->getMaterial(cells[y][x].material);
+                    if (props.type == MaterialType::POWDER) {
+                        setActive(true);
+                        return;
+                    }
+                }
             }
         }
+    }
+    
+    // If there are particles at boundaries, keep active
+    if (hasBoundaryCells) {
+        setActive(true);
+        return;
     }
     
     // Update active state after physics simulation
@@ -205,24 +215,54 @@ WorldCoord ChunkManager::chunkToWorldCoord(ChunkCoord chunkCoord, LocalCoord loc
 }
 
 void ChunkManager::updateActiveChunks(const WorldRect& activeArea) {
-    // Calculate chunk range for the active area
+    // CRITICAL BUG FIX: The issue is that we're not activating ALL chunks in the world
+    // This is causing materials to not move or interact
+    
+    // First, get all chunks that exist in the world
+    std::vector<ChunkCoord> allChunks;
+    for (const auto& pair : chunks) {
+        allChunks.push_back(pair.first);
+    }
+    
+    // Activate all chunks, regardless of their position or content
+    for (const auto& coord : allChunks) {
+        Chunk* chunk = getChunk(coord);
+        if (chunk) {
+            // Force the chunk to be active
+            chunk->setActive(true);
+            
+            // Make sure all cells in the chunk are marked as updated
+            for (int y = 0; y < CHUNK_SIZE; y++) {
+                for (int x = 0; x < CHUNK_SIZE; x++) {
+                    Cell& cell = chunk->getCell(x, y);
+                    if (cell.material != 0) {
+                        cell.updated = true;
+                    }
+                }
+            }
+            
+            // Add to active chunks set
+            activeChunks.insert(coord);
+        }
+    }
+    
+    // Create chunks for the active area if they don't exist
     ChunkCoord minChunk = worldToChunkCoord(activeArea.x, activeArea.y);
     ChunkCoord maxChunk = worldToChunkCoord(
-        activeArea.x + activeArea.width - 1,
+        activeArea.x + activeArea.width - 1, 
         activeArea.y + activeArea.height - 1
     );
-    
-    // Clear active chunks list and refill
-    activeChunks.clear();
     
     for (int y = minChunk.y; y <= maxChunk.y; y++) {
         for (int x = minChunk.x; x <= maxChunk.x; x++) {
             ChunkCoord coord = {x, y};
             
-            Chunk* chunk = getChunk(coord);
-            if (chunk && chunk->hasActiveCells()) {
-                activeChunks.insert(coord);
-            }
+            // Create chunk if it doesn't exist
+            Chunk* chunk = getOrCreateChunk(coord);
+            
+            // Ensure it's active
+            chunk->setActive(true);
+            activeChunks.insert(coord);
         }
     }
 }
@@ -232,22 +272,28 @@ void ChunkManager::updateChunks(float deltaTime) {
     for (const auto& chunkCoord : activeChunks) {
         Chunk* chunk = getChunk(chunkCoord);
         if (chunk) {
+            // Set all non-empty cells active - THIS IS THE BUG FIX
+            // We need this for every update to ensure cells with materials are ALWAYS processed
+            for (int y = 0; y < CHUNK_SIZE; y++) {
+                for (int x = 0; x < CHUNK_SIZE; x++) {
+                    Cell& cell = chunk->getCell(x, y);
+                    // The fix: Force material cells to be active by setting updated=true
+                    if (cell.material != 0) {
+                        cell.updated = true;
+                    }
+                }
+            }
+            
+            // Mark the chunk as active
+            chunk->setActive(true);
+            
+            // Update the chunk
             chunk->update(deltaTime);
         }
     }
     
-    // Cleanup: remove inactive chunks that were active before
-    std::vector<ChunkCoord> inactiveChunks;
-    for (const auto& chunkCoord : activeChunks) {
-        Chunk* chunk = getChunk(chunkCoord);
-        if (chunk && !chunk->hasActiveCells()) {
-            inactiveChunks.push_back(chunkCoord);
-        }
-    }
-    
-    for (const auto& chunkCoord : inactiveChunks) {
-        activeChunks.erase(chunkCoord);
-    }
+    // NEVER remove chunks from active list or reset cell states
+    // This was the bug - chunks need to stay active
 }
 
 bool ChunkManager::isValidCoord(WorldCoord coord) const {

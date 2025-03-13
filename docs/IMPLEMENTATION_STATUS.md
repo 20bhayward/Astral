@@ -5,20 +5,27 @@
 ### Completed Tasks
 - [x] Phase 0: Project Setup and Infrastructure
 - [x] Phase 1: Core Engine Architecture
-
-### In Progress
 - [x] Create Material Properties system
 - [x] Implement Material Registry
 - [x] Create Cell system
-- [x] Implement Chunk system for world management
-- [x] Implement Cellular Automaton
-- [ ] Optimize physics with chunk-based processing
+- [x] Implement basic Chunk system for world management
+- [x] Implement Cellular Automaton core
+- [x] Add basic material simulation (sand, water, stone, oil)
+- [x] Create console-based testing framework for physics system
+
+### In Progress
+- [ ] Enhance physics simulation to match Noita-like quality
+- [ ] Improve liquid dynamics and interaction
+- [ ] Implement more realistic material behaviors
 
 ### Up Next
+- [ ] Optimize chunk-based processing for better performance
 - [ ] Add advanced Material interactions and reactions
-- [ ] Create GPU acceleration for physics computation
-- [ ] Implement fluid dynamics simulation
-- [ ] Add Temperature diffusion system
+- [ ] Implement proper pressure and fluid dynamics 
+- [ ] Add Temperature diffusion system with phase changes
+- [ ] Implement particle-based effects (smoke, fire, steam)
+- [ ] Add viscoelastic materials (slime, jelly)
+- [ ] Create gas simulation with buoyancy and diffusion
 
 ## Overall Progress
 
@@ -26,11 +33,13 @@
 |-------|-------------|--------|------------|
 | 0 | Project Setup and Infrastructure | ✅ Completed | 100% |
 | 1 | Core Engine Architecture | ✅ Completed | 100% |
-| 2 | Physics System Implementation | 🟡 In Progress | 75% |
+| 2 | Physics System Implementation | 🟡 In Progress | 60% |
 | 3 | Rendering System Development | 🟡 In Progress | 20% |
 | 4 | Performance Optimization | ⚪ Not Started | 0% |
 | 5 | Integration and Demo Development | ⚪ Not Started | 0% |
 | 6 | Polishing and Documentation | ⚪ Not Started | 0% |
+
+**Note**: Physics System completion percentage was adjusted from 75% to 60% after re-evaluation. While we have the basic physics framework in place, achieving Noita-like quality will require more sophisticated material behaviors and interactions.
 
 ## Tasks by Phase
 
