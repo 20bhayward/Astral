@@ -1,5 +1,6 @@
 #include "astral/physics/CellularPhysics.h"
 #include "astral/physics/Material.h"
+#include "astral/physics/CellProcessor.h"
 #include <chrono>
 #include <algorithm>
 #include <random>

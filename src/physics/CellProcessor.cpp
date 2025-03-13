@@ -1,8 +1,9 @@
-#include "astral/physics/CellularPhysics.h"
+#include "astral/physics/CellProcessor.h"
 #include "astral/physics/Material.h"
 #include <chrono>
 #include <algorithm>
 #include <cmath>
+#include <iostream>
 
 namespace astral {
 

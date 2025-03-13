@@ -25,6 +25,7 @@ add_library(astral_physics
     physics/ChunkManager.cpp
     physics/CellularPhysics.cpp
     physics/CellularAutomaton.cpp
+    physics/CellProcessor.cpp
 )
 
 target_include_directories(astral_physics PUBLIC

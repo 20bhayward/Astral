@@ -1,4 +1,5 @@
 #include "astral/physics/CellularAutomaton.h"
+#include "astral/physics/CellProcessor.h"
 #include <random>
 #include <chrono>
 #include <cmath>
