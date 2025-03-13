@@ -877,19 +877,17 @@ void CellProcessor::processStateChange(Cell& cell, float deltaTime)
             // Apply the state change
             MaterialID oldMaterial = cell.material;
             
-            // Validate that the target material is a valid ID before applying
-            if (stateChange.targetMaterial >= 0 && stateChange.targetMaterial <= 100) { // Assuming we won't have more than 100 material types
+            // Ensure material ID is valid before using it
+            if (stateChange.targetMaterial > 0 && stateChange.targetMaterial <= 100) {
+                // Valid ID - set it directly
                 cell.material = stateChange.targetMaterial;
             } else {
-                // If invalid material ID, set to air
-                cell.material = materialRegistry->getDefaultMaterialID();
+                // Invalid ID - use Air instead
+                cell.material = materialRegistry->getDefaultMaterialID(); // Air (0)
             }
             
             // Initialize the new material properties
             initializeCellFromMaterial(cell, cell.material);
-            
-            // Preserve temperature across state change
-            cell.temperature = props.type == MaterialType::FIRE ? 500.0f : cell.temperature;
             
             // Preserve appropriate flags
             if (props.type == MaterialType::FIRE) {
@@ -924,45 +922,35 @@ void CellProcessor::transferHeat(Cell& sourceCell, Cell& targetCell, float delta
     // In our simplified system, we use material types to determine heat transfer
     float transferRate = 0.3f; // Default transfer rate
     
-    // Materials with HOT flag transfer heat better
-    if (sourceProps.hasFlag(MaterialProperties::Flags::HOT) || 
-        targetProps.hasFlag(MaterialProperties::Flags::HOT)) {
-        transferRate = 0.6f;
+    // COMPLETELY DISABLED: Heat transfer multipliers were causing infinite ignition distance
+    // Heat transfer should be kept at the default rate to prevent spreading across infinite distance
+    
+    // Heat transfer rate is now fixed at a very low value
+    transferRate = 0.01f;
+    
+    // Prevent fire/heat from spreading across unlimited distance
+    
+    // Only allow direct contact heat transfer for fire
+    if ((sourceProps.type == MaterialType::FIRE && 
+         (targetProps.type == MaterialType::FIRE || targetProps.name == "Wood")) ||
+        (targetProps.type == MaterialType::FIRE && 
+         (sourceProps.type == MaterialType::FIRE || sourceProps.name == "Wood"))) {
+        // Only allow heat transfer for direct contact between fire and wood
+        transferRate = 0.1f;
+    } else {
+        // For all other materials, make heat transfer extremely slow
+        transferRate = 0.001f;
     }
     
-    // Enhanced heat transfer for fire
-    if (sourceProps.type == MaterialType::FIRE || targetProps.type == MaterialType::FIRE) {
-        transferRate *= 1.5f;  // Fire transfers heat more aggressively
-        
-        // Oil fire transfers even more heat
-        if (sourceCell.material == materialRegistry->getOilFireID() || 
-            targetCell.material == materialRegistry->getOilFireID()) {
-            transferRate *= 1.3f;  // 30% more heat transfer for oil fires
-        }
-    }
-    
-    // Wood burns and ignites more readily when near fire or burning wood
-    if ((sourceProps.type == MaterialType::FIRE && targetProps.name == "Wood") ||
-        (targetProps.type == MaterialType::FIRE && sourceProps.name == "Wood")) {
-        transferRate *= 1.5f;  // Significantly increased heat transfer to wood from fire
-    }
-    
-    // Wood-to-wood fire transfer is crucial for proper fire spreading through wooden structures
+    // DISABLED: Heat transfer between wood pieces was causing infinite distance ignition
+    // Wood fire should only spread by direct contact, not through heat transfer
+    /*
     if (sourceProps.name == "Wood" && targetProps.name == "Wood" && 
         sourceCell.hasFlag(Cell::FLAG_BURNING)) {
-        // Burning wood transfers heat EXTREMELY effectively to other wood
-        transferRate *= 6.0f;  // Massive boost to wood-to-wood heat transfer when burning
-        
-        // Also have a good chance to directly ignite adjacent wood
-        if (targetCell.temperature > 230.0f && rollProbability(0.15f)) {
-            // Higher probability to ensure fire spreads well through wooden structures
-            targetCell.setFlag(Cell::FLAG_BURNING);
-            targetCell.temperature = std::max(targetCell.temperature, 300.0f);
-            
-            // Make burning wood hot enough to continue the chain reaction
-            sourceCell.temperature = std::max(sourceCell.temperature, 320.0f);
-        }
+        // This logic caused infinite distance fire ignition
+        // and has been completely disabled
     }
+    */
     
     // Scale by delta time for consistent behavior
     float transfer = tempDiff * transferRate * deltaTime * 0.1f;
@@ -983,19 +971,14 @@ void CellProcessor::transferHeat(Cell& sourceCell, Cell& targetCell, float delta
     sourceCell.temperature -= transfer / sourceHeatCapacity;
     targetCell.temperature += transfer / targetHeatCapacity;
     
-    // Smoke generation from burning materials
+    // COMPLETELY DISABLED: Smoke generation from distant burning materials
+    // This was causing heat to propagate and affect materials at large distances
+    /*
     if (sourceProps.type == MaterialType::FIRE && targetProps.flammable && 
         targetProps.type != MaterialType::FIRE) {
-        // As materials heat up near fire, they might emit smoke before fully igniting
-        if (targetCell.temperature > targetProps.ignitionPoint * 0.7f &&  // At 70% of ignition point
-            rollProbability(0.01f * deltaTime * 10.0f)) {  // Small chance each update
-            // Slightly cool the target as energy converts to smoke
-            targetCell.temperature -= 5.0f;
-            
-            // Small boost for the fire as it consumes material
-            sourceCell.energy += 5.0f;
-        }
+        // Disabled - this was causing problems with infinite distance heat propagation
     }
+    */
 }
 
 bool CellProcessor::checkStateChangeByTemperature(Cell& cell)
@@ -1063,11 +1046,29 @@ bool CellProcessor::checkStateChangeByTemperature(Cell& cell)
     if (props.flammable && props.ignitionPoint > 0 && 
         cell.temperature >= props.ignitionPoint) {
         
-        // Convert to fire
-        cell.material = materialRegistry->getFireID();
-        cell.temperature = std::max(500.0f, cell.temperature);
-        cell.setFlag(Cell::FLAG_BURNING);
-        cell.lifetime = static_cast<uint8_t>(props.burnRate * 200.0f);
+        // Only convert to fire if material is not wood
+        if (props.name != "Wood" && cell.material != materialRegistry->getWoodID()) {
+            // Set burning flag
+            cell.setFlag(Cell::FLAG_BURNING);
+            
+            // For oil, use oil fire
+            if (props.name == "Oil" || cell.material == materialRegistry->getOilID()) {
+                cell.material = materialRegistry->getOilFireID();
+            } else {
+                // Verify material ID is valid
+                MaterialID fireID = materialRegistry->getFireID();
+                if (fireID > 0 && fireID <= 100) {
+                    cell.material = fireID;
+                }
+                // If Fire ID invalid, just keep existing material with the burning flag
+            }
+            
+            cell.temperature = std::max(500.0f, cell.temperature);
+            cell.lifetime = static_cast<uint8_t>(props.burnRate * 200.0f);
+        } else {
+            // Wood gets burning flag only, it stays as wood
+            cell.setFlag(Cell::FLAG_BURNING);
+        }
         return true;
     }
     
@@ -1192,25 +1193,35 @@ void CellProcessor::igniteCell(Cell& cell)
         // Convert to fire based on material type
         MaterialID oldMaterial = cell.material;
         
+        // Handle wood specially - wood stays as wood but gets the burning flag
+        if (oldMaterial == materialRegistry->getWoodID() || props.name == "Wood") {
+            // Just set the burning flag, don't change material
+            cell.setFlag(Cell::FLAG_BURNING);
+            std::cout << "WOOD IGNITED: Burning flag set, material unchanged" << std::endl;
+            return;
+        }
+        
         // Special case for oil - it creates oil fire
-        if (oldMaterial == materialRegistry->getOilID()) {
+        if (oldMaterial == materialRegistry->getOilID() || props.name == "Oil") {
+            std::cout << "OIL IGNITED: Converting to oil fire" << std::endl;
             cell.material = materialRegistry->getOilFireID();
-            cell.temperature = std::max(650.0f, cell.temperature);  // Oil fire burns hotter
         } else {
-            // Regular fire for everything else
-            cell.material = materialRegistry->getFireID();
-            cell.temperature = std::max(500.0f, cell.temperature);
+            // Regular fire for everything else - ensure ID is valid first
+            MaterialID fireID = materialRegistry->getFireID();
+            if (fireID > 0 && fireID <= 100) {
+                cell.material = fireID;
+            } else {
+                // If fire ID is invalid, keep original material
+                cell.material = oldMaterial;
+            }
         }
         
         cell.setFlag(Cell::FLAG_BURNING);
         
         // Fire lifetime based on burn rate of original material
-        // We scale the lifetime by a factor based on the material type
         float lifetimeScale = 1.0f;
         if (oldMaterial == materialRegistry->getOilID()) {
             lifetimeScale = 2.0f;  // Oil burns longer
-        } else if (oldMaterial == materialRegistry->getWoodID()) {
-            lifetimeScale = 1.5f;  // Wood burns somewhat longer
         }
         
         cell.lifetime = static_cast<uint8_t>(props.burnRate * 200.0f * lifetimeScale);
@@ -1347,19 +1358,41 @@ Cell* CellProcessor::getAdjacentCell(const Cell& cell, int dx, int dy)
     
     // Since we don't have direct access to the world coordinates or grid from the CellProcessor,
     // we'll use a dummy approach just to make the code compile
-    static Cell dummyCell;
     
-    // We'll return null for diagonal cells and non-zero offsets
-    // This way fire/smoke will only spread straight up for now
+    // CRITICAL: Use a NEW dummyCell each time to avoid memory corruption
+    // This prevents issues with invalid material IDs
+    static Cell dummyCell1; // For up direction
+    static Cell dummyCell2; // For down direction
+    static Cell dummyCell3; // For left direction
+    static Cell dummyCell4; // For right direction
+    
+    // We'll return null for diagonal cells
     if (dx != 0 && dy != 0) {
         return nullptr;
     }
     
-    // Only allow upward movement (negative y-direction is upward)
-    if (dy < 0 && dx == 0) {
-        // We'll return a valid pointer but only for straight up movement
-        dummyCell.material = materialRegistry->getDefaultMaterialID(); // Air by default
-        return &dummyCell;
+    // Only allow cardinal directions
+    // Use a different static cell for each direction to prevent corruption
+    if (dy < 0 && dx == 0) { // Up
+        // Reset cell to valid state
+        dummyCell1 = Cell(); // Reset to default state with valid IDs
+        dummyCell1.material = materialRegistry->getDefaultMaterialID(); // Air
+        return &dummyCell1;
+    } 
+    else if (dy > 0 && dx == 0) { // Down
+        dummyCell2 = Cell(); // Reset completely
+        dummyCell2.material = materialRegistry->getDefaultMaterialID();
+        return &dummyCell2;
+    }
+    else if (dx < 0 && dy == 0) { // Left
+        dummyCell3 = Cell(); // Reset completely
+        dummyCell3.material = materialRegistry->getDefaultMaterialID();
+        return &dummyCell3;
+    }
+    else if (dx > 0 && dy == 0) { // Right
+        dummyCell4 = Cell(); // Reset completely
+        dummyCell4.material = materialRegistry->getDefaultMaterialID();
+        return &dummyCell4;
     }
     
     // Otherwise return null
