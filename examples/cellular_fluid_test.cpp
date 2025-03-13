@@ -749,45 +749,68 @@ void drawWorld(const astral::CellularAutomaton& automaton) {
         for (int x = startX; x < endX; x++) {
             const astral::Cell& cell = automaton.getCell(x, y);
             
-            // Skip empty cells
+            // Skip empty cells and use material names instead of hardcoded IDs for more reliable coloring
             if (cell.material == automaton.getMaterialIDByName("Air")) {
+                // Air - transparent, should be skipped
                 continue;
-            }
-            
-            // Simple material coloring with no alpha channel
-            switch (cell.material) {
-                case 0: // Air - transparent, should be skipped
-                    continue;
-                case 1: // Stone - Gray
-                    glColor3f(0.5f, 0.5f, 0.5f);
-                    break;
-                case 2: // Sand - Yellow
-                    glColor3f(0.76f, 0.7f, 0.5f);
-                    break;
-                case 3: // Water - Blue
-                    glColor3f(0.0f, 0.4f, 0.8f);
-                    break;
-                case 4: // Oil - Dark Brown
-                    glColor3f(0.25f, 0.15f, 0.0f);
-                    break;
-                case 5: // Lava - Red/Orange
-                    glColor3f(1.0f, 0.3f, 0.0f);
-                    break;
-                case 6: // Fire - Orange
-                    glColor3f(1.0f, 0.6f, 0.1f);
-                    break;
-                case 7: // Steam - Light Blue
-                    glColor3f(0.8f, 0.9f, 1.0f);
-                    break;
-                case 8: // Smoke - Dark Gray
+            } else if (cell.material == automaton.getMaterialIDByName("Stone")) {
+                // Stone - Gray
+                glColor3f(0.5f, 0.5f, 0.5f);
+            } else if (cell.material == automaton.getMaterialIDByName("Sand")) {
+                // Sand - Yellow
+                glColor3f(0.76f, 0.7f, 0.5f);
+            } else if (cell.material == automaton.getMaterialIDByName("Water")) {
+                // Water - Blue
+                glColor3f(0.0f, 0.4f, 0.8f);
+            } else if (cell.material == automaton.getMaterialIDByName("Oil")) {
+                // Oil - Dark Brown
+                glColor3f(0.25f, 0.15f, 0.0f);
+            } else if (cell.material == automaton.getMaterialIDByName("Lava")) {
+                // Lava - Red/Orange
+                glColor3f(1.0f, 0.3f, 0.0f);
+            } else if (cell.material == automaton.getMaterialIDByName("Fire")) {
+                // Fire - Orange/Yellow with intensity variation
+                float intensity = std::min(std::max(cell.velocity.x, 0.0f), 1.0f);
+                
+                // As fire fades, it gets more red and less yellow
+                float red = 1.0f;
+                float green = 0.3f + intensity * 0.3f;  // 0.3 to 0.6
+                float blue = intensity * 0.1f;          // 0 to 0.1
+                glColor3f(red, green, blue);
+            } else if (cell.material == automaton.getMaterialIDByName("OilFire")) {
+                // Oil Fire - Blue/Purple with intensity variation
+                float intensity = std::min(std::max(cell.velocity.x, 0.0f), 1.0f);
+                
+                // As oil fire fades, it shifts color
+                float red = 0.5f * intensity;
+                float green = 0.3f * intensity;  
+                float blue = 0.7f + intensity * 0.3f;  // 0.7 to 1.0
+                glColor3f(red, green, blue);
+            } else if (cell.material == automaton.getMaterialIDByName("Steam")) {
+                // Steam - Light Blue
+                glColor3f(0.8f, 0.9f, 1.0f);
+            } else if (cell.material == automaton.getMaterialIDByName("Smoke")) {
+                // Smoke - Dark Gray, with variation for oil smoke (using metadata flag)
+                if (cell.metadata == 1) {
+                    // Darker smoke with slight blue tint for oil fires
+                    glColor3f(0.12f, 0.12f, 0.2f);
+                } else {
+                    // Regular smoke
                     glColor3f(0.2f, 0.2f, 0.2f);
-                    break;
-                case 9: // Wood - Brown
+                }
+            } else if (cell.material == automaton.getMaterialIDByName("Wood")) {
+                // Wood - Brown with red tint if burning
+                if (cell.hasFlag(astral::Cell::FLAG_BURNING)) {
+                    // For burning wood, add red tint based on how damaged it is
+                    float damage = 1.0f - cell.health;
+                    glColor3f(0.6f + damage * 0.4f, 0.4f - damage * 0.2f, 0.2f - damage * 0.1f);
+                } else {
+                    // Regular wood
                     glColor3f(0.6f, 0.4f, 0.2f);
-                    break;
-                default: // Unknown - Magenta
-                    glColor3f(1.0f, 0.0f, 1.0f);
-                    break;
+                }
+            } else {
+                // Unknown - Magenta
+                glColor3f(1.0f, 0.0f, 1.0f);
             }
             
             // Draw a simple quad without any overlap tricks

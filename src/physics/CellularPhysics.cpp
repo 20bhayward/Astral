@@ -99,15 +99,8 @@ MaterialProperties CellularPhysics::getMaterialProperties(int x, int y) const
 
 bool CellularPhysics::canMove(int x, int y, int newX, int newY)
 {
-    static int canMoveCount = 0;
-    canMoveCount++;
-    
     // Boundary check
     if (!isValidPosition(x, y) || !isValidPosition(newX, newY)) {
-        if (canMoveCount % 1000 == 0) {
-            std::cout << "CAN_MOVE CALL #" << canMoveCount << ": FAILED due to out of bounds - (" 
-                     << x << "," << y << ") to (" << newX << "," << newY << ")" << std::endl;
-        }
         return false;
     }
     
@@ -115,21 +108,8 @@ bool CellularPhysics::canMove(int x, int y, int newX, int newY)
     Cell& sourceCell = getCell(x, y);
     Cell& targetCell = getCell(newX, newY);
     
-    // Get result early for logging
-    bool canMoveResult = cellProcessor->canCellMove(sourceCell, targetCell);
-    
-    // Print status every 1000 calls
-    if (canMoveCount % 1000 == 0) {
-        const MaterialProperties& sourceProp = materialRegistry->getMaterial(sourceCell.material);
-        const MaterialProperties& targetProp = materialRegistry->getMaterial(targetCell.material);
-        
-        std::cout << "CAN_MOVE CALL #" << canMoveCount << ": " 
-                 << (canMoveResult ? "ALLOWED" : "BLOCKED") 
-                 << " - Source: " << sourceProp.name << "(" << x << "," << y << ")"
-                 << ", Target: " << targetProp.name << "(" << newX << "," << newY << ")" << std::endl;
-    }
-    
-    return canMoveResult;
+    // Return result
+    return cellProcessor->canCellMove(sourceCell, targetCell);
 }
 
 void CellularPhysics::swapCells(int x, int y, int newX, int newY)
@@ -166,32 +146,13 @@ void CellularPhysics::swapCells(int x, int y, int newX, int newY)
 
 // Track ANY cell movements
 void CellularPhysics::trackLavaMovement(int x, int y, int newX, int newY) {
-    static int moveCount = 0;
-    
-    // Only print if there's actual movement (different coordinates)
-    if (x != newX || y != newY) {
-        moveCount++;
-        std::cout << "MOVEMENT #" << moveCount << ": Cell moved from (" 
-                  << x << "," << y << ") to (" << newX << "," << newY << ")" << std::endl;
-    }
+    // Function kept for API compatibility, but debug output removed
 }
 
 void CellularPhysics::moveCell(int x, int y, int newX, int newY)
 {
-    static int callCount = 0;
-    callCount++;
-    
-    // Just print every 100th call to avoid spamming
-    if (callCount % 100 == 0) {
-        std::cout << "MOVE CALL #" << callCount << ": Attempt to move from (" 
-                  << x << "," << y << ") to (" << newX << "," << newY << ")" << std::endl;
-    }
-    
     // Boundary check
     if (!isValidPosition(x, y) || !isValidPosition(newX, newY)) {
-        if (callCount % 100 == 0) {
-            std::cout << "  -> FAILED: Out of bounds" << std::endl;
-        }
         return;
     }
     
@@ -440,19 +401,8 @@ void CellularPhysics::updateSolid(int x, int y, float deltaTime)
 
 void CellularPhysics::updatePowder(int x, int y, float deltaTime)
 {
-    static int powderUpdateCount = 0;
-    powderUpdateCount++;
-    
-    // Print every 1000 calls
-    if (powderUpdateCount % 1000 == 0) {
-        std::cout << "UPDATE POWDER #" << powderUpdateCount << ": Position (" << x << "," << y << ")" << std::endl;
-    }
-    
     // Skip if already updated
     if (updated[y][x]) {
-        if (powderUpdateCount % 1000 == 0) {
-            std::cout << "  -> SKIPPED: Already updated" << std::endl;
-        }
         return;
     }
     
@@ -465,24 +415,23 @@ void CellularPhysics::updatePowder(int x, int y, float deltaTime)
     
     // Check if the material is actually of powder type
     if (props.type != MaterialType::POWDER) {
-        if (powderUpdateCount % 1000 == 0) {
-            std::cout << "  -> SKIPPED: Not powder type" << std::endl;
-        }
         return;
     }
     
     // Apply temperature effects
     applyTemperature(x, y, deltaTime);
     
-    // Basic powder simulation: try to fall down
-    // FIXED: In screen coordinates, down is +y
+    // SIMPLIFY: Basic powder physics for cleaner, more predictable behavior
+    
+    // Step 1: Try to fall straight down 
     if (canMove(x, y, x, y + 1)) {
         moveCell(x, y, x, y + 1);
         return;
     }
     
-    // Try diagonal falls with random direction preference
-    bool tryLeftFirst = cellProcessor->rollProbability(0.5f);
+    // Step 2: If blocked below, try to slide diagonally (sand pile formation)
+    // Alternate between left and right randomly to avoid biased piles
+    bool tryLeftFirst = (x % 2 == 0); // Deterministic but looks random
     
     if (tryLeftFirst) {
         if (canMove(x, y, x - 1, y + 1)) {
@@ -504,69 +453,36 @@ void CellularPhysics::updatePowder(int x, int y, float deltaTime)
         }
     }
     
-    // If can't fall, apply any existing velocity
-    if (glm::length(cell.velocity) > 0.1f) {
-        // Calculate movement direction
-        int dx = cell.velocity.x > 0.1f ? 1 : (cell.velocity.x < -0.1f ? -1 : 0);
-        int dy = cell.velocity.y > 0.1f ? 1 : (cell.velocity.y < -0.1f ? -1 : 0);
-        
-        // Try to move in the velocity direction
-        if (dx != 0 || dy != 0) {
-            if (canMove(x, y, x + dx, y + dy)) {
-                moveCell(x, y, x + dx, y + dy);
-            } else {
-                // If blocked, reduce velocity
-                cell.velocity *= 0.8f;
-            }
-        }
-    }
+    // Step 3: If powder is at rest (can't fall further), stop all movement
+    // Reset velocity to prevent random jittering
+    cell.velocity = glm::vec2(0.0f, 0.0f);
     
-    // Check for potential horizontal movement to reach a more stable position
-    if (cell.pressure > 0.1f || glm::length(cell.velocity) > 0.1f) {
-        // Determine stacking pressure by counting cells above
-        int stackHeight = 0;
-        for (int cy = y - 1; cy >= 0 && cy >= y - 10; cy--) {
-            if (!isValidPosition(x, cy)) break;
-            
-            const Cell& above = getCell(x, cy);
-            const MaterialProperties& aboveProps = materialRegistry->getMaterial(above.material);
-            
-            if (aboveProps.type == MaterialType::POWDER || aboveProps.type == MaterialType::SOLID) {
-                stackHeight++;
+    // Step 4: Simple pile formation - check if there's stacked powder
+    // Try to slide horizontally if there's a lot of powder above
+    // but only with a small probability to avoid constant movement
+    if (cellProcessor->rollProbability(0.05f)) {
+        bool canMoveLeft = canMove(x, y, x - 1, y);
+        bool canMoveRight = canMove(x, y, x + 1, y);
+        
+        if (canMoveLeft && canMoveRight) {
+            // Can go either way, choose randomly
+            if (cellProcessor->rollProbability(0.5f)) {
+                moveCell(x, y, x - 1, y);
             } else {
-                break;
+                moveCell(x, y, x + 1, y);
             }
-        }
-        
-        // Pressure from stack increases chance of horizontal movement
-        float horizontalChance = std::min(0.3f, 0.05f + stackHeight * 0.03f);
-        
-        if (cellProcessor->rollProbability(horizontalChance)) {
-            // Try to move horizontally
-            int dir = cellProcessor->rollProbability(0.5f) ? 1 : -1;
-            
-            if (canMove(x, y, x + dir, y)) {
-                moveCell(x, y, x + dir, y);
-            }
+        } else if (canMoveLeft) {
+            moveCell(x, y, x - 1, y);
+        } else if (canMoveRight) {
+            moveCell(x, y, x + 1, y);
         }
     }
 }
 
 void CellularPhysics::updateLiquid(int x, int y, float deltaTime)
 {
-    static int liquidUpdateCount = 0;
-    liquidUpdateCount++;
-    
-    // Print every 1000 calls
-    if (liquidUpdateCount % 1000 == 0) {
-        std::cout << "UPDATE LIQUID #" << liquidUpdateCount << ": Position (" << x << "," << y << ")" << std::endl;
-    }
-    
     // Skip if already updated
     if (updated[y][x]) {
-        if (liquidUpdateCount % 1000 == 0) {
-            std::cout << "  -> SKIPPED: Already updated" << std::endl;
-        }
         return;
     }
     
@@ -579,14 +495,63 @@ void CellularPhysics::updateLiquid(int x, int y, float deltaTime)
     
     // Check if the material is actually of liquid type
     if (props.type != MaterialType::LIQUID) {
-        if (liquidUpdateCount % 1000 == 0) {
-            std::cout << "  -> SKIPPED: Not liquid type (material=" << props.name << ")" << std::endl;
-        }
         return;
     }
     
     // Apply temperature effects
     applyTemperature(x, y, deltaTime);
+    
+    // Enhanced special behavior for lava - emit fire and smoke effects, and check surroundings
+    if (props.name == "Lava") {
+        // Check if there's air above this lava cell (up is negative y)
+        if (isValidPosition(x, y-1)) {
+            Cell& aboveCell = getCell(x, y-1);
+            if (aboveCell.material == materialRegistry->getDefaultMaterialID()) {
+                // Increased chance to emit fire (bubbling/spitting lava effect)
+                if (cellProcessor->rollProbability(0.015f)) {
+                    aboveCell.material = materialRegistry->getFireID();
+                    aboveCell.temperature = 650.0f; // Hotter fire
+                    aboveCell.setFlag(Cell::FLAG_BURNING);
+                    aboveCell.lifetime = static_cast<uint8_t>(20 + cellProcessor->getRandomInt(0, 15));
+                    aboveCell.velocity.y = -0.5f; // Initial upward velocity
+                }
+                // Also emit smoke (volcanic gas effect)
+                else if (cellProcessor->rollProbability(0.008f)) {
+                    aboveCell.material = materialRegistry->getSmokeID();
+                    aboveCell.temperature = 200.0f;
+                    aboveCell.lifetime = static_cast<uint8_t>(40 + cellProcessor->getRandomInt(0, 25));
+                }
+            }
+        }
+        
+        // Enhanced lava behaviors - check interactions in all 8 directions
+        for (int dy = -1; dy <= 1; dy++) {
+            for (int dx = -1; dx <= 1; dx++) {
+                if (dx == 0 && dy == 0) continue; // Skip center
+                
+                int nx = x + dx;
+                int ny = y + dy;
+                
+                if (!isValidPosition(nx, ny)) continue;
+                
+                Cell& neighborCell = getCell(nx, ny);
+                const MaterialProperties& neighborProps = materialRegistry->getMaterial(neighborCell.material);
+                
+                // Lava heats up surrounding materials
+                if (neighborCell.material != materialRegistry->getLavaID() && 
+                    neighborCell.material != materialRegistry->getDefaultMaterialID()) {
+                    // Heat transfer is part of processMaterialInteraction, but we'll boost it here
+                    neighborCell.temperature += 2.0f;
+                    
+                    // Ignite flammable materials with more consistency (in addition to reactions)
+                    if (neighborProps.flammable && neighborCell.temperature > 200.0f &&
+                        cellProcessor->rollProbability(0.07f)) {
+                        cellProcessor->igniteCell(neighborCell);
+                    }
+                }
+            }
+        }
+    }
     
     // Viscosity affects update frequency
     if (props.viscosity > 0.0f && cellProcessor->rollProbability(props.viscosity)) {
@@ -624,11 +589,52 @@ void CellularPhysics::updateLiquid(int x, int y, float deltaTime)
     }
     
     // Horizontal flow based on dispersion
-    int dispersionDistance = static_cast<int>(props.dispersion * 5.0f) + 1;
+    int dispersionDistance = static_cast<int>(props.dispersion * 3.0f) + 1;
+    
+    // Only bother with horizontal flow if we're blocked below
+    // This creates pooling behavior since cells only spread when they can't fall
+    bool blockedBelow = !canMove(x, y, x, y + 1);
+    
+    // Skip horizontal flow if not blocked below
+    if (!blockedBelow) {
+        return;
+    }
+    
+    // Check for "surface" - liquids flow less at the top of a pool
+    bool isOnSurface = false;
+    if (isValidPosition(x, y-1)) {
+        const Cell& aboveCell = getCell(x, y-1);
+        // We're at the surface if there's air or gas above us
+        if (aboveCell.material == materialRegistry->getDefaultMaterialID() || 
+            materialRegistry->getMaterial(aboveCell.material).type == MaterialType::GAS) {
+            isOnSurface = true;
+        }
+    }
+    
+    // Increase pressure based on how deep this liquid is
+    float depth = 0.0f;
+    for (int checkY = y + 1; checkY < y + 10 && isValidPosition(x, checkY); checkY++) {
+        const Cell& cellBelow = getCell(x, checkY);
+        const MaterialProperties& propsBelow = materialRegistry->getMaterial(cellBelow.material);
+        if (propsBelow.type == MaterialType::LIQUID && 
+            cellBelow.material == cell.material) {
+            depth += 1.0f;
+        } else {
+            break;
+        }
+    }
+    
+    // Add pressure based on depth - pushes liquid outward horizontally
+    cell.pressure = depth * 0.5f;
+    
+    // Surface tension effect - liquids on the surface tend to stick together
+    if (isOnSurface) {
+        dispersionDistance = std::max(1, dispersionDistance - 1); // Reduced horizontal flow on surface
+    }
     
     for (int dist = 1; dist <= dispersionDistance; dist++) {
         // Flow probability decreases with distance and increases with pressure
-        float flowChance = 0.8f - (dist - 1) * 0.2f + cell.pressure * 0.05f;
+        float flowChance = 0.8f - (dist - 1) * 0.2f + cell.pressure * 0.1f;
         
         if (!cellProcessor->rollProbability(flowChance)) {
             continue;
@@ -660,12 +666,12 @@ void CellularPhysics::updateLiquid(int x, int y, float deltaTime)
     }
     
     // Pressure effects: High pressure can force liquid upward
-    // Note: In our world, up is +y (OpenGL standard coordinates)
+    // Note: In our coordinate system, up is -y (negative y is upward)
     if (cell.pressure > 2.0f) {
         float upChance = (cell.pressure - 2.0f) * 0.1f;
         if (cellProcessor->rollProbability(upChance)) {
-            if (canMove(x, y, x, y + 1)) {
-                moveCell(x, y, x, y + 1);
+            if (canMove(x, y, x, y - 1)) {
+                moveCell(x, y, x, y - 1);
                 return;
             }
         }
@@ -703,31 +709,67 @@ void CellularPhysics::updateGas(int x, int y, float deltaTime)
     }
     
     // Gas simulation: try to rise up (opposite of liquids)
-    // Note: In our world, up is +y (OpenGL standard coordinates)
-    if (canMove(x, y, x, y + 1)) {
-        moveCell(x, y, x, y + 1);
-        return;
+    // Note: In our coordinate system, up is -y (negative y is upward)
+    
+    // Smoke and steam should rise MUCH faster than fire for stark contrast
+    // Make smoke rise aggressively while fire stays mostly in place
+    if (props.name == "Smoke" || props.name == "Steam") {
+        // Much higher rise chance for smoke and steam
+        float riseSpeed = (props.name == "Smoke") ? 0.99f : 0.95f; // Smoke rises extremely fast
+        
+        // Make fresh smoke rise faster than dissipating smoke
+        if (cell.lifetime > 0) {
+            float freshness = static_cast<float>(cell.lifetime) / 100.0f; // Normalize to 0-1
+            freshness = std::min(freshness, 1.0f);
+            // Always keep the rise chance very high (0.9 to 0.99)
+            riseSpeed = 0.9f + (freshness * 0.09f);
+            
+            // Increase vertical speed for smoke - make it rise faster
+            if (freshness > 0.5f && cellProcessor->rollProbability(0.3f)) {
+                // Occasionally try to make smoke move up two cells at once for faster rising
+                int upDist = (props.name == "Smoke") ? 2 : 1;
+                if (isValidPosition(x, y - upDist) && 
+                    getCell(x, y - upDist).material == materialRegistry->getDefaultMaterialID()) {
+                    moveCell(x, y, x, y - upDist);
+                    return;
+                }
+            }
+        }
+        
+        // Higher probability of rising for smoke/steam
+        if (cellProcessor->rollProbability(riseSpeed)) {
+            if (canMove(x, y, x, y - 1)) {
+                moveCell(x, y, x, y - 1);
+                return;
+            }
+        }
+    } else {
+        // Regular gas movement (slower)
+        if (canMove(x, y, x, y - 1)) {
+            moveCell(x, y, x, y - 1);
+            return;
+        }
     }
     
     // Try diagonal rises with random direction preference
     bool tryLeftFirst = cellProcessor->rollProbability(0.5f);
     
     if (tryLeftFirst) {
-        if (canMove(x, y, x - 1, y + 1)) {
-            moveCell(x, y, x - 1, y + 1);
+        if (canMove(x, y, x - 1, y - 1)) {
+            moveCell(x, y, x - 1, y - 1);
             return;
         }
-        if (canMove(x, y, x + 1, y + 1)) {
-            moveCell(x, y, x + 1, y + 1);
+        if (canMove(x, y, x + 1, y - 1)) {
+            moveCell(x, y, x + 1, y - 1);
             return;
         }
     } else {
-        if (canMove(x, y, x + 1, y + 1)) {
-            moveCell(x, y, x + 1, y + 1);
+        if (canMove(x, y, x + 1, y - 1)) {
+            moveCell(x, y, x + 1, y - 1);
             return;
         }
-        if (canMove(x, y, x - 1, y + 1)) {
-            moveCell(x, y, x - 1, y + 1);
+        if (canMove(x, y, x - 1, y - 1)) {
+            moveCell(x, y, x - 1, y - 1);
             return;
         }
     }
@@ -783,6 +825,9 @@ void CellularPhysics::updateFire(int x, int y, float deltaTime)
         return;
     }
     
+    // Determine if this is oil fire or regular fire
+    bool isOilFire = (cell.material == materialRegistry->getOilFireID());
+    
     // Fire has a chance to spread to flammable neighbors
     for (int dy = -1; dy <= 1; dy++) {
         for (int dx = -1; dx <= 1; dx++) {
@@ -797,7 +842,15 @@ void CellularPhysics::updateFire(int x, int y, float deltaTime)
             const MaterialProperties& neighborProps = materialRegistry->getMaterial(neighbor.material);
             
             if (neighborProps.flammable) {
-                float ignitionChance = neighborProps.flammability * 0.05f * deltaTime * 10.0f;
+                // Oil fire spreads more aggressively
+                float ignitionMultiplier = isOilFire ? 0.08f : 0.05f;
+                float ignitionChance = neighborProps.flammability * ignitionMultiplier * deltaTime * 10.0f;
+                
+                // Increased ignition chance for wood specifically
+                if (neighbor.material == materialRegistry->getWoodID()) {
+                    ignitionChance *= 1.2f;
+                }
+                
                 if (cellProcessor->rollProbability(ignitionChance)) {
                     // Ignite neighbor
                     cellProcessor->igniteCell(neighbor);
@@ -806,56 +859,269 @@ void CellularPhysics::updateFire(int x, int y, float deltaTime)
         }
     }
     
-    // Fire has a chance to burn out and turn to smoke
+    // Generate smoke periodically while burning, but at a reduced rate
+    // Check if fire has fuel beneath it - only generate substantial smoke with fuel
+    bool hasFuel = false;
+    if (isValidPosition(x, y+1)) { // Check below
+        const Cell& belowCell = getCell(x, y+1);
+        const MaterialProperties& belowProps = materialRegistry->getMaterial(belowCell.material);
+        hasFuel = belowProps.flammable || belowProps.type == MaterialType::FIRE || 
+                 belowProps.name == "Lava" || belowProps.name == "Oil";
+    }
+    
+    // Reduced smoke generation probability
+    float smokeChance = 0.0f;
+    if (hasFuel) {
+        // More smoke when burning fuel
+        smokeChance = isOilFire ? 0.015f : 0.01f;
+    } else {
+        // Much less smoke for floating fire
+        smokeChance = isOilFire ? 0.005f : 0.003f;
+    }
+    
+    if (cellProcessor->rollProbability(smokeChance)) {
+        // Check if there's an empty space above to create smoke
+        int smokeY = y - 1;  // Smoke rises upward (negative y)
+        if (isValidPosition(x, smokeY) && 
+            getCell(x, smokeY).material == materialRegistry->getDefaultMaterialID()) {
+            
+            Cell& smokeCell = getCell(x, smokeY);
+            smokeCell.material = materialRegistry->getSmokeID();
+            smokeCell.temperature = isOilFire ? 130.0f : 100.0f;
+            
+            // Shorter-lived smoke
+            smokeCell.lifetime = hasFuel ? 
+                (isOilFire ? 80 : 60) :  // On fuel - longer smoke
+                (isOilFire ? 40 : 30);   // No fuel - brief smoke
+            
+            // Darker smoke for oil fires
+            if (isOilFire) {
+                smokeCell.metadata = 1;
+            }
+        }
+    }
+    
+    // Make fire visually fade as it burns out by adjusting its velocity
+    // We'll use velocity.x as a visual indicator for fire intensity (used in rendering)
     if (cell.lifetime > 0) {
-        cell.lifetime--;
-        if (cell.lifetime == 0) {
-            // Transform to smoke
+        // Calculate intensity as a percentage of remaining lifetime
+        float totalLifetime = isOilFire ? 60.0f : 30.0f;
+        float intensity = cell.lifetime / totalLifetime;
+        
+        // Store intensity in velocity.x for visual effects during rendering
+        cell.velocity.x = intensity;
+        
+        // Check if fire has something to burn beneath it
+        bool hasFuel = false;
+        if (isValidPosition(x, y+1)) { // Down is +y direction
+            const Cell& belowCell = getCell(x, y+1);
+            const MaterialProperties& belowProps = materialRegistry->getMaterial(belowCell.material);
+            
+            // Fire has fuel if it's on flammable material or another fire
+            hasFuel = belowProps.flammable || belowProps.type == MaterialType::FIRE || 
+                      belowProps.name == "Lava";
+        }
+        
+        // If fire has no fuel source below it, make it burn out EXTREMELY quickly
+        if (!hasFuel) {
+            // EXTREMELY aggressive burn out for floating fire
+            if (cellProcessor->rollProbability(0.9f)) {
+                cell.lifetime -= 5; // Burn out 5x faster when not on fuel
+            }
+            
+            // Almost guaranteed to convert to air when no fuel source
+            if (cellProcessor->rollProbability(0.8f)) {
+                // Convert floating fire directly to air in most cases
+                if (cellProcessor->rollProbability(0.8f)) {
+                    // Just remove the fire completely
+                    cell.material = materialRegistry->getDefaultMaterialID();
+                    cell.clearFlag(Cell::FLAG_BURNING);
+                } else {
+                    // Occasionally convert to a small amount of smoke
+                    cell.material = materialRegistry->getSmokeID();
+                    cell.clearFlag(Cell::FLAG_BURNING);
+                    cell.temperature = isOilFire ? 120.0f : 90.0f;
+                    cell.lifetime = 15 + cellProcessor->getRandomInt(0, 10); // Very short-lived smoke
+                    cell.metadata = isOilFire ? 1 : 0;
+                }
+                return;
+            }
+        }
+        
+        // As fire burns out, it gets less hot and has a random chance to turn to smoke
+        if (cell.lifetime < 10) {
+            // Accelerate conversion to smoke when almost burnt out
+            cell.temperature = cell.temperature * 0.92f;
+            
+            // Higher chance to convert to smoke when nearly extinguished
+            if (cellProcessor->rollProbability(0.25f)) {
+                // Convert low-intensity fire directly to smoke
+                cell.material = materialRegistry->getSmokeID();
+                cell.clearFlag(Cell::FLAG_BURNING);
+                
+                // Oil fire produces darker, hotter smoke that lasts longer
+                if (isOilFire) {
+                    cell.temperature = 130.0f;
+                    cell.lifetime = 70 + cellProcessor->getRandomInt(0, 30);
+                    cell.metadata = 1; // Mark as oil fire smoke
+                } else {
+                    cell.temperature = 100.0f;
+                    cell.lifetime = 50 + cellProcessor->getRandomInt(0, 30);
+                }
+                return;
+            }
+        }
+        
+        // Decrement lifetime with some randomness for more natural fading
+        if (cellProcessor->rollProbability(0.95f)) { // Increased probability to ensure depletion
+            cell.lifetime--;
+        }
+        
+        // When fire is almost extinguished, slow down its movement and increase smoke generation
+        if (cell.lifetime < 5) {
+            // Generate more smoke as the fire is dying
+            if (cellProcessor->rollProbability(0.3f)) {
+                // Check if there's space above to create smoke
+                int smokeY = y - 1;  // Smoke rises upward (negative y)
+                if (isValidPosition(x, smokeY) && 
+                    getCell(x, smokeY).material == materialRegistry->getDefaultMaterialID()) {
+                    
+                    Cell& smokeCell = getCell(x, smokeY);
+                    smokeCell.material = materialRegistry->getSmokeID();
+                    smokeCell.temperature = isOilFire ? 130.0f : 100.0f;
+                    smokeCell.lifetime = isOilFire ? 120 : 80;
+                    
+                    // Darker smoke for oil fires
+                    if (isOilFire) {
+                        smokeCell.metadata = 1;
+                    }
+                }
+            }
+            
+            // In the last moments, fire barely moves upward
+            return; // Skip movement code below
+        }
+        
+        if (cell.lifetime <= 0) {
+            // Transform to smoke when lifetime is depleted
             cell.material = materialRegistry->getSmokeID();
             cell.clearFlag(Cell::FLAG_BURNING);
-            cell.temperature = 100.0f;
-            cell.lifetime = 100; // Smoke lasts a while
+            
+            // Oil fire produces darker, hotter smoke that lasts longer
+            if (isOilFire) {
+                cell.temperature = 130.0f;
+                cell.lifetime = 120 + cellProcessor->getRandomInt(0, 30);
+                cell.metadata = 1; // Mark as oil fire smoke
+            } else {
+                cell.temperature = 100.0f;
+                cell.lifetime = 80 + cellProcessor->getRandomInt(0, 20);
+            }
             return;
         }
-    } else if (cellProcessor->rollProbability(0.05f * deltaTime * 10.0f)) {
-        // Random burnout chance
+    } else if (cellProcessor->rollProbability(isOilFire ? 0.07f : 0.12f * deltaTime * 10.0f)) { // Increased chance
+        // Random burnout chance (oil fire has lower chance)
+        // Add some additional smoke before fully burning out
+        if (cellProcessor->rollProbability(0.4f)) {
+            // Check if there's space around to create smoke
+            for (int dy = -1; dy <= 0; dy++) {
+                for (int dx = -1; dx <= 1; dx++) {
+                    if (dx == 0 && dy == 0) continue;
+                    
+                    // Try neighboring cells
+                    int nx = x + dx;
+                    int ny = y + dy;
+                    
+                    if (!isValidPosition(nx, ny)) continue;
+                    
+                    if (getCell(nx, ny).material == materialRegistry->getDefaultMaterialID()) {
+                        // Create some additional smoke
+                        Cell& smokeCell = getCell(nx, ny);
+                        smokeCell.material = materialRegistry->getSmokeID();
+                        smokeCell.temperature = isOilFire ? 130.0f : 100.0f;
+                        smokeCell.lifetime = isOilFire ? 120 : 80;
+                        if (isOilFire) {
+                            smokeCell.metadata = 1;
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+        
+        // Convert the fire cell to smoke
         cell.material = materialRegistry->getSmokeID();
         cell.clearFlag(Cell::FLAG_BURNING);
+        
+        // Oil fire produces darker, hotter smoke that lasts longer
+        if (isOilFire) {
+            cell.temperature = 130.0f;
+            cell.lifetime = 150;
+            cell.metadata = 1; // Mark as oil fire smoke
+        } else {
+            cell.temperature = 100.0f;
+            cell.lifetime = 100;
+        }
         return;
     }
     
-    // Fire rises like gas
-    // Note: In our world, up is +y (OpenGL standard coordinates)
-    if (canMove(x, y, x, y + 1)) {
-        moveCell(x, y, x, y + 1);
-        return;
+    // Fire rises like gas, but with different characteristics based on type
+    // Note: In our coordinate system, up is -y (negative y is upward)
+    
+    // Make fire much more like real fire - it should barely rise at all
+    // Fire should "lick" upward occasionally, but mostly stay in place and flicker
+    float intensity = cell.velocity.x; // Use stored intensity value (1.0 = fresh fire, 0.0 = about to extinguish)
+    
+    // Extremely low rise chance for realistic fire behavior
+    // In real fire, flames flicker but mostly stay in place with the fuel
+    float riseChance = isOilFire ? 
+                       (0.04f + intensity * 0.06f) : // Oil fire: 0.04-0.1 rise chance (very low)
+                       (0.06f + intensity * 0.08f); // Regular fire: 0.06-0.14 rise chance (very low)
+                       
+    // Fire should spread horizontally much more than rising
+    float spreadChance = isOilFire ? 
+                        (0.4f + intensity * 0.3f) : // Oil fire spreads aggressively (0.4-0.7)
+                        (0.15f + intensity * 0.15f); // Regular fire (0.15-0.3)
+                        
+    // Add randomness to fire height - occasionally let it "lick" upward
+    // This creates a flickering effect without constant rising
+    if (cellProcessor->rollProbability(0.03f)) {
+        // Random "licking" of flames - temporary rise
+        riseChance = 0.8f;  // Occasional burst upward
     }
     
-    // Fire can also rise diagonally
-    bool tryLeftFirst = cellProcessor->rollProbability(0.5f);
-    
-    if (tryLeftFirst) {
-        if (canMove(x, y, x - 1, y + 1)) {
-            moveCell(x, y, x - 1, y + 1);
+    if (cellProcessor->rollProbability(riseChance)) {
+        // Try to rise upward
+        if (canMove(x, y, x, y - 1)) {
+            moveCell(x, y, x, y - 1);
             return;
         }
-        if (canMove(x, y, x + 1, y + 1)) {
-            moveCell(x, y, x + 1, y + 1);
-            return;
-        }
-    } else {
-        if (canMove(x, y, x + 1, y + 1)) {
-            moveCell(x, y, x + 1, y + 1);
-            return;
-        }
-        if (canMove(x, y, x - 1, y + 1)) {
-            moveCell(x, y, x - 1, y + 1);
-            return;
+        
+        // Fire can also rise diagonally
+        bool tryLeftFirst = cellProcessor->rollProbability(0.5f);
+        
+        if (tryLeftFirst) {
+            if (canMove(x, y, x - 1, y - 1)) {
+                moveCell(x, y, x - 1, y - 1);
+                return;
+            }
+            if (canMove(x, y, x + 1, y - 1)) {
+                moveCell(x, y, x + 1, y - 1);
+                return;
+            }
+        } else {
+            if (canMove(x, y, x + 1, y - 1)) {
+                moveCell(x, y, x + 1, y - 1);
+                return;
+            }
+            if (canMove(x, y, x - 1, y - 1)) {
+                moveCell(x, y, x - 1, y - 1);
+                return;
+            }
         }
     }
     
     // Horizontal movement for fire
-    if (cellProcessor->rollProbability(0.3f)) {
+    if (cellProcessor->rollProbability(spreadChance)) {
         int dir = cellProcessor->rollProbability(0.5f) ? 1 : -1;
         
         if (canMove(x, y, x + dir, y)) {
@@ -1057,19 +1323,13 @@ void CellularPhysics::updateChunk(Chunk* chunk, float deltaTime)
 
 void CellularPhysics::update(float deltaTime)
 {
-    static int updateCallCount = 0;
-    updateCallCount++;
-    std::cout << "PHYSICS UPDATE #" << updateCallCount << " called with deltaTime=" << deltaTime << std::endl;
-    
     // Reset update tracking for new frame
     resetUpdateTracker();
     
     // Use optimized parallel chunk processing for better performance
-    std::cout << " -> Calling chunkManager->updateChunksParallel()" << std::endl;
     chunkManager->updateChunksParallel(deltaTime);
     
-    // CRITICAL FIX: Directly update all cells in active chunks since Chunk::update doesn't call physics
-    std::cout << " -> CRITICAL FIX: Manually processing all cells in active chunks" << std::endl;
+    // Directly update all cells in active chunks
     const auto& activeChunks = chunkManager->getActiveChunks();
     
     // FIRST PHASE: Process all cell movements based on their type
@@ -1122,8 +1382,6 @@ void CellularPhysics::update(float deltaTime)
     }
     
     // SECOND PHASE: Process all material interactions between cells
-    // This is the critical step that was being skipped/overlooked!
-    std::cout << " -> PROCESSING ALL MATERIAL INTERACTIONS" << std::endl;
     for (const auto& chunkCoord : activeChunks) {
         Chunk* chunk = chunkManager->getChunk(chunkCoord);
         if (chunk) {
@@ -1178,14 +1436,43 @@ void CellularPhysics::update(float deltaTime)
                         // Ensure all material cells are active for the simulation
                         cell.updated = true;
                         
-                        // Give fluid cells a small random velocity to kickstart movement
+                        // Only give random velocity to cells that are already moving or to gases/fire
                         const MaterialProperties& props = materialRegistry->getMaterial(cell.material);
-                        if (props.type == MaterialType::LIQUID || props.type == MaterialType::POWDER || 
-                            props.type == MaterialType::GAS || props.type == MaterialType::FIRE) {
-                            // Add a larger velocity to all cells to ensure they exceed movement threshold
-                            // The velocity threshold for movement is 0.1f, so we need to exceed that
-                            cell.velocity.x = (rand() % 100 - 50) / 250.0f; // Doubled magnitude
-                            cell.velocity.y = (rand() % 100 - 50) / 250.0f; // Added negative values too
+                        
+                        // Check if cell is already moving - don't disturb resting cells
+                        bool isMoving = (glm::length(cell.velocity) > 0.05f);
+                        
+                        // Only apply to gases and fire which should always be moving
+                        // Don't disturb liquids and powders that have settled
+                        if ((props.type == MaterialType::GAS || props.type == MaterialType::FIRE) ||
+                            // Only add small velocity to moving liquids/powders (avoid creating perpetual motion)
+                            (isMoving && (props.type == MaterialType::LIQUID || props.type == MaterialType::POWDER))) {
+                            
+                            // Reduce velocity magnitude significantly for stability
+                            float velMagnitude = 0.05f;
+                            if (props.type == MaterialType::GAS || props.type == MaterialType::FIRE) {
+                                // Gases and fire should move more actively
+                                velMagnitude = 0.1f;
+                            }
+                            
+                            cell.velocity.x += (rand() % 100 - 50) / 1000.0f * velMagnitude;
+                            cell.velocity.y += (rand() % 100 - 50) / 1000.0f * velMagnitude;
+                            
+                            // Cap maximum velocity to avoid erratic behavior
+                            float maxVel = 2.0f;
+                            if (glm::length(cell.velocity) > maxVel) {
+                                cell.velocity = glm::normalize(cell.velocity) * maxVel;
+                            }
+                        } 
+                        // Apply damping to settled materials over time
+                        else if (props.type == MaterialType::LIQUID || props.type == MaterialType::POWDER) {
+                            // Gradually stop movement of settled materials
+                            cell.velocity *= 0.8f;
+                            
+                            // If velocity is very small, just stop completely
+                            if (glm::length(cell.velocity) < 0.05f) {
+                                cell.velocity = glm::vec2(0.0f, 0.0f);
+                            }
                         }
                     }
                 }

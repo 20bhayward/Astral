@@ -12,7 +12,10 @@ namespace astral {
 class CellProcessor {
 private:
     MaterialRegistry* materialRegistry;
-    std::mt19937 random;
+    mutable std::mt19937 random;
+    
+    // Helper to get an adjacent cell safely
+    Cell* getAdjacentCell(const Cell& cell, int dx, int dy);
     
 public:
     CellProcessor(MaterialRegistry* registry);
@@ -45,9 +48,9 @@ public:
     void dissolveCell(Cell& cell, float rate);
     
     // Random utilities
-    float getRandomFloat(float min, float max);
-    int getRandomInt(int min, int max);
-    bool rollProbability(float chance);
+    float getRandomFloat(float min, float max) const;
+    int getRandomInt(int min, int max) const;
+    bool rollProbability(float chance) const;
 };
 
 } // namespace astral
